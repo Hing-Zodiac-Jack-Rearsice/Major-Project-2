@@ -7,21 +7,28 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import { Mail } from "./data";
+import { Button } from "../ui/button";
 
 interface MailListProps {
   onMailSelect: (mail: Mail) => void;
+  selected: string;
 }
 
-export function MailList({ onMailSelect }: MailListProps) {
+export function MailList({ onMailSelect, selected }: MailListProps) {
   const [mails, setMails] = useState<Mail[]>([]);
   const [lastToken, setLastToken] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [category, setCategory] = useState("all");
   const observerTarget = useRef(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const fetchMail = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/mail");
+      setInitialLoading(true);
+      setMails([]); // Clear existing mails while loading new category
+      const res = await fetch(`/api/mail?category=${category}`);
       const data = await res.json();
       setMails(data.messages);
       setLastToken(data.nextPageToken);
@@ -33,6 +40,7 @@ export function MailList({ onMailSelect }: MailListProps) {
       console.error("Error fetching initial emails:", error);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
   };
 
@@ -40,7 +48,7 @@ export function MailList({ onMailSelect }: MailListProps) {
     if (!lastToken || loading) return;
     try {
       setLoading(true);
-      const res = await fetch(`/api/mail?pageToken=${lastToken}`);
+      const res = await fetch(`/api/mail?category=${category}&pageToken=${lastToken}`);
       const data = await res.json();
       setMails((previousMail) => [...previousMail, ...data.messages]);
       setLastToken(data.nextPageToken);
@@ -51,10 +59,26 @@ export function MailList({ onMailSelect }: MailListProps) {
     }
   };
 
+  // Update category when selected prop changes
+  useEffect(() => {
+    setCategory(selected.toLowerCase());
+  }, [selected]);
+
+  // Fetch emails and reset scroll when category changes
   useEffect(() => {
     fetchMail();
-  }, []);
+    // Reset scroll position
+    if (scrollAreaRef.current) {
+      const scrollableNode = scrollAreaRef.current.querySelector(
+        "[data-radix-scroll-area-viewport]"
+      );
+      if (scrollableNode) {
+        scrollableNode.scrollTop = 0;
+      }
+    }
+  }, [category]);
 
+  // Infinite scroll observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -81,8 +105,8 @@ export function MailList({ onMailSelect }: MailListProps) {
     };
   }, [lastToken, loading]);
 
-  // Show loading spinner during initial load
-  if (!mails.length && loading) {
+  // Show loading spinner during initial load or category change
+  if (initialLoading) {
     return (
       <div className="flex h-full items-center justify-center">
         <Loader2 className="h-6 w-6 animate-spin" />
@@ -92,7 +116,7 @@ export function MailList({ onMailSelect }: MailListProps) {
 
   return (
     <div className="relative flex flex-col h-[calc(100vh-8.5rem)]">
-      <ScrollArea className="flex-1">
+      <ScrollArea ref={scrollAreaRef} className="flex-1">
         <div className="flex flex-col gap-2 p-4 pt-0">
           {mails.map((mail) => (
             <button
@@ -118,7 +142,8 @@ export function MailList({ onMailSelect }: MailListProps) {
                 <div className="flex items-center gap-2">
                   {mail.labels.map((label) => (
                     <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                      {label}
+                      {/* to remove the first word from the label EX: CATEGORY_UPDATES => updates */}
+                      {label.split("_")[label.split("_").length - 1]}
                     </Badge>
                   ))}
                 </div>

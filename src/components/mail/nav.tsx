@@ -1,14 +1,13 @@
-"use client";
-
 import Link from "next/link";
 import { LucideIcon } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import React from "react";
 
 interface NavProps {
   isCollapsed: boolean;
+  sendSelected: (text: string) => void;
   links: {
     title: string;
     label?: string;
@@ -17,19 +16,33 @@ interface NavProps {
   }[];
 }
 
-export function Nav({ links, isCollapsed }: NavProps) {
+export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
+  const [selected, setSelected] = React.useState("inbox");
+
+  const handleClick = (text: string) => {
+    setSelected(text);
+    // send selected text back to the parent
+    sendSelected(text);
+    console.log("child: " + text);
+  };
+
   return (
     <div
       data-collapsed={isCollapsed}
       className="group flex flex-col gap-4 py-2 data-[collapsed=true]:py-2"
     >
       <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
-        {links.map((link, index) =>
-          isCollapsed ? (
-            <Tooltip key={index} delayDuration={0}>
+        {links.map((link, index) => {
+          const itemKey = `${link.title}-${index}`;
+
+          return isCollapsed ? (
+            <Tooltip key={itemKey} delayDuration={0}>
               <TooltipTrigger asChild>
                 <Link
                   href="#"
+                  onClick={() => {
+                    handleClick(link.title);
+                  }}
                   className={cn(
                     buttonVariants({ variant: link.variant, size: "icon" }),
                     "h-9 w-9",
@@ -48,8 +61,11 @@ export function Nav({ links, isCollapsed }: NavProps) {
             </Tooltip>
           ) : (
             <Link
-              key={index}
+              key={itemKey}
               href="#"
+              onClick={() => {
+                handleClick(link.title);
+              }}
               className={cn(
                 buttonVariants({ variant: link.variant, size: "sm" }),
                 link.variant === "default" &&
@@ -70,9 +86,11 @@ export function Nav({ links, isCollapsed }: NavProps) {
                 </span>
               )}
             </Link>
-          )
-        )}
+          );
+        })}
       </nav>
     </div>
   );
 }
+
+export default Nav;

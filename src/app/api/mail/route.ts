@@ -1,3 +1,4 @@
+import { BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { auth } from "@/lib/auth";
 import { getGmailService } from "@/utils/gmail";
 import { NextResponse } from "next/server";
@@ -5,6 +6,7 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const pageToken = searchParams.get("pageToken") || undefined;
+  const category = searchParams.get("category") || "all"; // Default to "all" if no category is specified
 
   const session = await auth();
   const access_token = session?.accessToken;
@@ -16,13 +18,48 @@ export async function GET(req: Request) {
 
   const gmail = getGmailService(access_token as string, refresh_token as string);
 
+  // Define the query based on the category
+  let query = "";
+  switch (category) {
+    case "drafts":
+      query = "in:draft";
+      break;
+    case "sent":
+      query = "in:sent";
+      break;
+    case "junk":
+      query = "in:spam";
+      break;
+    case "trash":
+      query = "in:trash";
+      break;
+    case "archive":
+      query = "in:archive";
+      break;
+    case "social":
+      query = "category:social in:inbox -in:drafts";
+      break;
+    case "updates":
+      query = "category:updates in:inbox -in:drafts";
+      break;
+    case "promotions":
+      query = "category:promotions in:inbox -in:drafts";
+      break;
+    case "all":
+    default:
+      query = "in:inbox -in:draft -in:sent -in:trash -in:spam";
+      break;
+    // Add more cases as needed
+  }
+
   // Fetch the list of messages
   const response = await (
     await gmail
   ).users.messages.list({
     userId: "me",
-    maxResults: 5, // Number of messages per page
+    maxResults: 7, // Number of messages per page
     pageToken, // Use the pageToken for pagination
+    q: query, // Add the query to filter messages
   });
 
   // Get full message details for each message
@@ -42,13 +79,16 @@ export async function GET(req: Request) {
         headers.find((header) => header.name?.toLowerCase() === "subject")?.value || "No Subject";
       const from =
         headers.find((header) => header.name?.toLowerCase() === "from")?.value || "Unknown Sender";
+      const to = headers.find((header) => header.name?.toLowerCase() === "to")?.value || "";
+      const cc = headers.find((header) => header.name?.toLowerCase() === "cc")?.value || "";
+      const replyTo =
+        headers.find((header) => header.name?.toLowerCase() === "reply-to")?.value || "";
       const date = headers.find((header) => header.name?.toLowerCase() === "date")?.value || "";
 
       // Extract the email address from the "From" header
       const email = from.match(/<([^>]+)>/)?.[1] || from;
 
       // Extract the sender's name from the "From" header
-      // Extract and clean the sender's name from the "From" header
       const name = cleanName(from.replace(/<[^>]+>/, "").trim());
 
       // Extract the message body (plain text or HTML)
@@ -60,6 +100,9 @@ export async function GET(req: Request) {
       // Extract labels (if available)
       const labels = fullMessage.data.labelIds || [];
 
+      // Format replyTo to extract only the email address
+      const formattedReplyTo = replyTo.match(/<([^>]+)>/)?.[1] || replyTo;
+
       return {
         id: message.id,
         name,
@@ -69,6 +112,9 @@ export async function GET(req: Request) {
         date,
         read,
         labels,
+        to,
+        cc,
+        replyTo: formattedReplyTo, // Return only the email address
       };
     }) || []
   );
@@ -115,6 +161,7 @@ function extractMessageBody(payload: any): string {
   // Return HTML content if available, otherwise return plain text
   return htmlBody || plainTextBody || "";
 }
+
 // Helper function to clean name strings
 function cleanName(name: string): string {
   return name

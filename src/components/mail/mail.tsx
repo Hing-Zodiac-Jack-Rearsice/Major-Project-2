@@ -25,6 +25,8 @@ import { MailDisplay } from "@/components/mail/mail-display";
 import { MailList } from "@/components/mail/mail-list";
 import { Nav } from "@/components/mail/nav";
 import { type Mail } from "@/components/mail/data";
+import { log } from "console";
+import { Button } from "../ui/button";
 
 interface MailProps {
   accounts: {
@@ -47,9 +49,17 @@ export function Mail({
 }: MailProps) {
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
   const [selectedMail, setSelectedMail] = React.useState<Mail | null>(null);
-
+  const [selected, setSelected] = React.useState("all");
   return (
     <TooltipProvider delayDuration={0}>
+      {/* Button for logging out the select categories */}
+      {/* <Button
+        onClick={() => {
+          console.log(selected);
+        }}
+      >
+        selected
+      </Button> */}
       <ResizablePanelGroup
         direction="horizontal"
         onLayout={(sizes: number[]) => {
@@ -85,17 +95,18 @@ export function Mail({
           </div>
           <Separator />
           <Nav
+            sendSelected={(data) => setSelected(data)}
             isCollapsed={isCollapsed}
             links={[
               {
-                title: "Inbox",
-                label: "128",
+                title: "All",
+                label: "",
                 icon: Inbox,
                 variant: "default",
               },
               {
                 title: "Drafts",
-                label: "9",
+                label: "",
                 icon: File,
                 variant: "ghost",
               },
@@ -107,7 +118,7 @@ export function Mail({
               },
               {
                 title: "Junk",
-                label: "23",
+                label: "",
                 icon: ArchiveX,
                 variant: "ghost",
               },
@@ -127,35 +138,37 @@ export function Mail({
           />
           <Separator />
           <Nav
+            sendSelected={(data) => setSelected(data)}
             isCollapsed={isCollapsed}
+            // labels are for amount
             links={[
               {
                 title: "Social",
-                label: "972",
+                label: "",
                 icon: Users2,
                 variant: "ghost",
               },
               {
                 title: "Updates",
-                label: "342",
+                label: "",
                 icon: AlertCircle,
                 variant: "ghost",
               },
               {
                 title: "Forums",
-                label: "128",
+                label: "",
                 icon: MessagesSquare,
                 variant: "ghost",
               },
               {
                 title: "Shopping",
-                label: "8",
+                label: "",
                 icon: ShoppingCart,
                 variant: "ghost",
               },
               {
                 title: "Promotions",
-                label: "21",
+                label: "",
                 icon: Archive,
                 variant: "ghost",
               },
@@ -186,10 +199,10 @@ export function Mail({
               </form>
             </div>
             <TabsContent value="all" className="m-0">
-              <MailList onMailSelect={setSelectedMail} />
+              <MailList onMailSelect={setSelectedMail} selected={selected} />
             </TabsContent>
             <TabsContent value="unread" className="m-0">
-              <MailList onMailSelect={setSelectedMail} />
+              <MailList onMailSelect={setSelectedMail} selected={selected} />
             </TabsContent>
           </Tabs>
         </ResizablePanel>
