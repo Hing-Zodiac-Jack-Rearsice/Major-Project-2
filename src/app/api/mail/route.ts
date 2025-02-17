@@ -1,4 +1,3 @@
-import { BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { auth } from "@/lib/auth";
 import { getGmailService } from "@/utils/gmail";
 import { NextResponse } from "next/server";
@@ -52,76 +51,86 @@ export async function GET(req: Request) {
     // Add more cases as needed
   }
 
-  // Fetch the list of messages
+  // Fetch the list of threads
   const response = await (
     await gmail
-  ).users.messages.list({
+  ).users.threads.list({
     userId: "me",
-    maxResults: 7, // Number of messages per page
+    maxResults: 7, // Number of threads per page
     pageToken, // Use the pageToken for pagination
-    q: query, // Add the query to filter messages
+    q: query, // Add the query to filter threads
   });
 
-  // Get full message details for each message
-  const messages = await Promise.all(
-    response.data.messages?.map(async (message) => {
-      const fullMessage = await (
+  // Get full thread details for each thread
+  const threads = await Promise.all(
+    response.data.threads?.map(async (thread) => {
+      const fullThread = await (
         await gmail
-      ).users.messages.get({
+      ).users.threads.get({
         userId: "me",
-        id: message.id as string,
-        format: "full", // Use "full" to get the complete message body
+        id: thread.id as string,
+        format: "full", // Use "full" to get the complete thread details
       });
 
-      // Extract headers
-      const headers = fullMessage.data.payload?.headers || [];
-      const subject =
-        headers.find((header) => header.name?.toLowerCase() === "subject")?.value || "No Subject";
-      const from =
-        headers.find((header) => header.name?.toLowerCase() === "from")?.value || "Unknown Sender";
-      const to = headers.find((header) => header.name?.toLowerCase() === "to")?.value || "";
-      const cc = headers.find((header) => header.name?.toLowerCase() === "cc")?.value || "";
-      const replyTo =
-        headers.find((header) => header.name?.toLowerCase() === "reply-to")?.value || "";
-      const date = headers.find((header) => header.name?.toLowerCase() === "date")?.value || "";
+      // Extract messages from the thread
+      const messages =
+        fullThread.data.messages?.map((message) => {
+          const headers = message.payload?.headers || [];
+          const subject =
+            headers.find((header) => header.name?.toLowerCase() === "subject")?.value ||
+            "No Subject";
+          const from =
+            headers.find((header) => header.name?.toLowerCase() === "from")?.value ||
+            "Unknown Sender";
+          const to = headers.find((header) => header.name?.toLowerCase() === "to")?.value || "";
+          const cc = headers.find((header) => header.name?.toLowerCase() === "cc")?.value || "";
+          const replyTo =
+            headers.find((header) => header.name?.toLowerCase() === "reply-to")?.value || "";
+          const date = headers.find((header) => header.name?.toLowerCase() === "date")?.value || "";
 
-      // Extract the email address from the "From" header
-      const email = from.match(/<([^>]+)>/)?.[1] || from;
+          // Extract the email address from the "From" header
+          const email = from.match(/<([^>]+)>/)?.[1] || from;
 
-      // Extract the sender's name from the "From" header
-      const name = cleanName(from.replace(/<[^>]+>/, "").trim());
+          // Extract the sender's name from the "From" header
+          const name = cleanName(from.replace(/<[^>]+>/, "").trim());
 
-      // Extract the message body (plain text or HTML)
-      const text = extractMessageBody(fullMessage.data.payload);
+          // Extract the message body (plain text or HTML)
+          const text = extractMessageBody(message.payload);
 
-      // Determine if the message is read
-      const read = !fullMessage.data.labelIds?.includes("UNREAD");
+          // Determine if the message is read
+          const read = !message.labelIds?.includes("UNREAD");
 
-      // Extract labels (if available)
-      const labels = fullMessage.data.labelIds || [];
+          // Extract labels (if available)
+          const labels = message.labelIds || [];
 
-      // Format replyTo to extract only the email address
-      const formattedReplyTo = replyTo.match(/<([^>]+)>/)?.[1] || replyTo;
+          // Format replyTo to extract only the email address
+          const formattedReplyTo = replyTo.match(/<([^>]+)>/)?.[1] || replyTo;
+
+          return {
+            id: message.id,
+            name,
+            email,
+            subject,
+            text,
+            date,
+            read,
+            labels,
+            to,
+            cc,
+            replyTo: formattedReplyTo, // Return only the email address
+          };
+        }) || [];
 
       return {
-        id: message.id,
-        name,
-        email,
-        subject,
-        text,
-        date,
-        read,
-        labels,
-        to,
-        cc,
-        replyTo: formattedReplyTo, // Return only the email address
+        id: thread.id,
+        messages,
       };
     }) || []
   );
 
   return new NextResponse(
     JSON.stringify({
-      messages,
+      threads,
       nextPageToken: response.data.nextPageToken, // Pass the nextPageToken to the frontend
     }),
     { status: 200 }

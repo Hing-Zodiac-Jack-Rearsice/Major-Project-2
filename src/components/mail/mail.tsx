@@ -25,8 +25,8 @@ import { MailDisplay } from "@/components/mail/mail-display";
 import { MailList } from "@/components/mail/mail-list";
 import { Nav } from "@/components/mail/nav";
 import { type Mail } from "@/components/mail/data";
-import { log } from "console";
 import { Button } from "../ui/button";
+import { useSession } from "next-auth/react";
 
 interface MailProps {
   accounts: {
@@ -34,7 +34,7 @@ interface MailProps {
     email: string;
     icon: React.ReactNode;
   }[];
-  mails: Mail[];
+  threads: { id: string; messages: Mail[] }[]; // Updated to use threads
   defaultLayout: number[] | undefined;
   defaultCollapsed?: boolean;
   navCollapsedSize: number;
@@ -42,24 +42,23 @@ interface MailProps {
 
 export function Mail({
   accounts,
-  mails,
+  threads,
   defaultLayout = [20, 32, 48],
   defaultCollapsed = false,
   navCollapsedSize,
-}: MailProps) {
+}: any) {
+  const { data: session } = useSession();
   const [isCollapsed, setIsCollapsed] = React.useState(defaultCollapsed);
-  const [selectedMail, setSelectedMail] = React.useState<Mail | null>(null);
+  const [selectedThread, setSelectedThread] = React.useState<{
+    id: string;
+    messages: Mail[];
+    unreadCount: number;
+    lastMessage: Mail;
+  } | null>(null);
   const [selected, setSelected] = React.useState("all");
+
   return (
     <TooltipProvider delayDuration={0}>
-      {/* Button for logging out the select categories */}
-      {/* <Button
-        onClick={() => {
-          console.log(selected);
-        }}
-      >
-        selected
-      </Button> */}
       <ResizablePanelGroup
         direction="horizontal"
         onLayout={(sizes: number[]) => {
@@ -67,6 +66,7 @@ export function Mail({
         }}
         className="items-stretch max-h-screen"
       >
+        <Button onClick={() => console.log(session)}>log user</Button>
         <ResizablePanel
           defaultSize={0}
           collapsedSize={navCollapsedSize}
@@ -83,14 +83,12 @@ export function Mail({
           }}
           className={cn(isCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out")}
         >
-          {/* Rest of the navigation panel code remains the same */}
           <div
             className={cn(
               "flex h-[52px] items-center justify-center",
               isCollapsed ? "h-[52px]" : "px-2"
             )}
           >
-            {/* account switcher ui */}
             <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
           </div>
           <Separator />
@@ -140,7 +138,6 @@ export function Mail({
           <Nav
             sendSelected={(data) => setSelected(data)}
             isCollapsed={isCollapsed}
-            // labels are for amount
             links={[
               {
                 title: "Social",
@@ -199,17 +196,16 @@ export function Mail({
               </form>
             </div>
             <TabsContent value="all" className="m-0">
-              <MailList onMailSelect={setSelectedMail} selected={selected} />
+              <MailList onThreadSelect={setSelectedThread} selected={selected} />
             </TabsContent>
             <TabsContent value="unread" className="m-0">
-              <MailList onMailSelect={setSelectedMail} selected={selected} />
+              <MailList onThreadSelect={setSelectedThread} selected={selected} />
             </TabsContent>
           </Tabs>
         </ResizablePanel>
         <ResizableHandle withHandle />
-        {/* defaultSize={defaultLayout[2]} */}
         <ResizablePanel defaultSize={defaultLayout[2]} minSize={30}>
-          <MailDisplay mail={selectedMail} />
+          <MailDisplay thread={selectedThread} />
         </ResizablePanel>
       </ResizablePanelGroup>
     </TooltipProvider>

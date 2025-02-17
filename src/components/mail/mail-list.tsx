@@ -7,15 +7,21 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2 } from "lucide-react";
 import { Mail } from "./data";
-import { Button } from "../ui/button";
+
+interface Thread {
+  id: string;
+  messages: Mail[];
+  unreadCount: number;
+  lastMessage: Mail;
+}
 
 interface MailListProps {
-  onMailSelect: (mail: Mail) => void;
+  onThreadSelect: (thread: Thread) => void;
   selected: string;
 }
 
-export function MailList({ onMailSelect, selected }: MailListProps) {
-  const [mails, setMails] = useState<Mail[]>([]);
+export function MailList({ onThreadSelect, selected }: MailListProps) {
+  const [threads, setThreads] = useState<Thread[]>([]);
   const [lastToken, setLastToken] = useState<string>();
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -23,21 +29,30 @@ export function MailList({ onMailSelect, selected }: MailListProps) {
   const observerTarget = useRef(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  const fetchMail = async () => {
+  const fetchThreads = async () => {
     try {
       setLoading(true);
       setInitialLoading(true);
-      setMails([]); // Clear existing mails while loading new category
+      setThreads([]); // Clear existing threads while loading new category
       const res = await fetch(`/api/mail?category=${category}`);
       const data = await res.json();
-      setMails(data.messages);
+
+      // Process threads to include unread count and last message
+      const processedThreads = data.threads.map((thread: Thread) => ({
+        ...thread,
+        unreadCount: thread.messages.filter((msg) => !msg.read).length,
+        lastMessage: thread.messages[thread.messages.length - 1],
+      }));
+
+      setThreads(processedThreads);
       setLastToken(data.nextPageToken);
-      // Select the first mail automatically if there are any messages
-      if (data.messages && data.messages.length > 0) {
-        onMailSelect(data.messages[0]);
+
+      // Select the first thread automatically if there are any threads
+      if (processedThreads.length > 0) {
+        onThreadSelect(processedThreads[0]);
       }
     } catch (error) {
-      console.error("Error fetching initial emails:", error);
+      console.error("Error fetching initial threads:", error);
     } finally {
       setLoading(false);
       setInitialLoading(false);
@@ -50,10 +65,18 @@ export function MailList({ onMailSelect, selected }: MailListProps) {
       setLoading(true);
       const res = await fetch(`/api/mail?category=${category}&pageToken=${lastToken}`);
       const data = await res.json();
-      setMails((previousMail) => [...previousMail, ...data.messages]);
+
+      // Process new threads
+      const processedThreads = data.threads.map((thread: Thread) => ({
+        ...thread,
+        unreadCount: thread.messages.filter((msg) => !msg.read).length,
+        lastMessage: thread.messages[thread.messages.length - 1],
+      }));
+
+      setThreads((prev) => [...prev, ...processedThreads]);
       setLastToken(data.nextPageToken);
     } catch (error) {
-      console.error("Error fetching more emails:", error);
+      console.error("Error fetching more threads:", error);
     } finally {
       setLoading(false);
     }
@@ -64,9 +87,9 @@ export function MailList({ onMailSelect, selected }: MailListProps) {
     setCategory(selected.toLowerCase());
   }, [selected]);
 
-  // Fetch emails and reset scroll when category changes
+  // Fetch threads and reset scroll when category changes
   useEffect(() => {
-    fetchMail();
+    fetchThreads();
     // Reset scroll position
     if (scrollAreaRef.current) {
       const scrollableNode = scrollAreaRef.current.querySelector(
@@ -118,10 +141,10 @@ export function MailList({ onMailSelect, selected }: MailListProps) {
     <div className="relative flex flex-col h-[calc(100vh-8.5rem)]">
       <ScrollArea ref={scrollAreaRef} className="flex-1">
         <div className="flex flex-col gap-2 p-4 pt-0">
-          {mails.map((mail) => (
+          {threads.map((thread) => (
             <button
-              key={mail.id}
-              onClick={() => onMailSelect(mail)}
+              key={thread.id}
+              onClick={() => onThreadSelect(thread)}
               className={cn(
                 "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent"
               )}
@@ -129,20 +152,30 @@ export function MailList({ onMailSelect, selected }: MailListProps) {
               <div className="flex w-full flex-col gap-1">
                 <div className="flex items-center">
                   <div className="flex items-center gap-2">
-                    <div className="font-semibold">{mail.name}</div>
-                    {!mail.read && <span className="flex h-2 w-2 rounded-full bg-blue-600" />}
+                    <div className="font-semibold">{thread.lastMessage.name}</div>
+                    {thread.unreadCount > 0 && (
+                      <Badge variant="secondary" className="ml-auto">
+                        {thread.unreadCount}
+                      </Badge>
+                    )}
                   </div>
                   <div className="ml-auto text-xs">
-                    {formatDistanceToNow(new Date(mail.date), { addSuffix: true })}
+                    {formatDistanceToNow(new Date(thread.lastMessage.date), {
+                      addSuffix: true,
+                    })}
                   </div>
                 </div>
-                <div className="text-xs font-medium">{mail.subject}</div>
+                <div className="text-xs font-medium">{thread.lastMessage.subject}</div>
+                {thread.messages.length > 1 && (
+                  <div className="text-xs text-muted-foreground">
+                    {thread.messages.length} messages
+                  </div>
+                )}
               </div>
-              {mail.labels?.length ? (
+              {thread.lastMessage.labels?.length ? (
                 <div className="flex items-center gap-2">
-                  {mail.labels.map((label) => (
+                  {thread.lastMessage.labels.map((label) => (
                     <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                      {/* to remove the first word from the label EX: CATEGORY_UPDATES => updates */}
                       {label.split("_")[label.split("_").length - 1]}
                     </Badge>
                   ))}
