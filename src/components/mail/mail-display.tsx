@@ -1,5 +1,5 @@
+"use client";
 import React, { useState, useEffect } from "react";
-import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
 import { Letter } from "react-letter";
 import { addDays } from "date-fns/addDays";
@@ -33,14 +33,21 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ScrollArea } from "../ui/scroll-area";
 import { processAttachments } from "@/utils/processAttachments";
-
+import dynamic from "next/dynamic";
+// Dynamically import ReactQuill with SSR disabled
+const ReactQuill = dynamic(() => import("react-quill"), {
+  ssr: false,
+  loading: () => <p>Loading editor...</p>,
+});
 export function MailDisplay({ thread }: any) {
   const today = new Date();
   const [replyName, setReplyName] = useState("");
   const [editorContent, setEditorContent] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
+  const [editorLoaded, setEditorLoaded] = useState(false);
 
   useEffect(() => {
+    setEditorLoaded(true);
     setEditorContent("");
     setAttachments([]);
     setReplyName(thread ? thread.messages[0].from : "");
@@ -375,13 +382,23 @@ export function MailDisplay({ thread }: any) {
 
                     {/* Editor container with fixed height */}
                     <div className="bg-white rounded-md">
-                      <ReactQuill
-                        theme="snow"
-                        value={editorContent}
-                        onChange={setEditorContent}
-                        placeholder={`Reply to ${replyName}...`}
-                        className="h-fit"
-                      />
+                      {editorLoaded && (
+                        <>
+                          <ReactQuill
+                            theme="snow"
+                            value={editorContent}
+                            onChange={setEditorContent}
+                            // ${replyName}
+                            placeholder={`Write a reply...`}
+                            className="h-fit"
+                          />
+                          <style jsx global>{`
+                            .ql-editor {
+                              min-height: 100px;
+                            }
+                          `}</style>
+                        </>
+                      )}
                     </div>
                     {/* Attachments section */}
                     {attachments.length > 0 && (
