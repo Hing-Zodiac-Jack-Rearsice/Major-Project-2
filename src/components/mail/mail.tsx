@@ -66,7 +66,7 @@ export function Mail({
         }}
         className="items-stretch max-h-screen"
       >
-        <Button onClick={() => console.log(session)}>log user</Button>
+        {/* <Button onClick={() => console.log(session)}>log user</Button> */}
         <ResizablePanel
           defaultSize={0}
           collapsedSize={navCollapsedSize}

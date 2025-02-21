@@ -1,5 +1,3 @@
-// First, update the email reply API (first file):
-
 import { auth } from "@/lib/auth";
 import { getGmailService } from "@/utils/gmail";
 import { NextResponse } from "next/server";
@@ -7,6 +5,7 @@ import { encode as base64Encode } from "js-base64";
 
 interface ReplyRequestBody {
   content: string;
+  participants: string[];
   attachments?: {
     name: string;
     type: string;
@@ -24,6 +23,7 @@ export async function POST(req: Request, { params }: { params: { threadID: strin
     if (session === null) return new NextResponse("Unauthorized", { status: 401 });
     if (access_token === null) return new NextResponse("No access token", { status: 401 });
     if (refresh_token === null) return new NextResponse("No refresh token", { status: 401 });
+    if (!session.user?.email) return new NextResponse("User email not found", { status: 401 });
 
     const gmail = await getGmailService(access_token as string, refresh_token as string);
 
@@ -39,18 +39,31 @@ export async function POST(req: Request, { params }: { params: { threadID: strin
 
     const headers = originalMessage.payload.headers;
     const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value || "";
-    const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value || "";
-    const replyTo = headers.find((h) => h.name?.toLowerCase() === "reply-to")?.value;
+    const references = headers.find((h) => h.name?.toLowerCase() === "references")?.value || "";
+    const messageId = headers.find((h) => h.name?.toLowerCase() === "message-id")?.value || "";
 
-    const toAddress = replyTo || from.match(/<([^>]+)>/)?.[1] || from;
+    // Ensure Message-ID is properly formatted (should have angle brackets)
+    const formattedMessageId = messageId.includes("<") ? messageId : `<${messageId}>`;
 
-    const { content, attachments }: ReplyRequestBody = await req.json();
+    // Build references string properly
+    const allReferences = references ? `${references} ${formattedMessageId}` : formattedMessageId;
+
+    const { content, attachments, participants }: ReplyRequestBody = await req.json();
+
+    // Filter out the current user's email from participants
+    const recipientsList = participants.filter((email) => email !== session.user?.email);
+
+    // Join all recipients with commas
+    const toAddresses = recipientsList.join(", ");
 
     const fromHeader = session.user?.name
       ? `${session.user.name} <${session.user.email}>`
-      : session.user?.email || "me";
+      : session.user?.email;
 
-    // Create the HTML email wrapper
+    // Clean up subject to prevent multiple Re: prefixes
+    const cleanSubject = subject.replace(/^(Re:\s*)+/i, "");
+    const newSubject = `Re: ${cleanSubject}`;
+
     const htmlContent = `
 <!DOCTYPE html>
 <html>
@@ -68,10 +81,10 @@ ${content}
       "MIME-Version: 1.0",
       `Content-Type: multipart/mixed; boundary=${boundary}`,
       `From: ${fromHeader}`,
-      `To: ${toAddress}`,
-      `Subject: Re: ${subject}`,
-      `References: ${originalMessage.id}`,
-      `In-Reply-To: ${originalMessage.id}`,
+      `To: ${toAddresses}`,
+      `Subject: ${newSubject}`,
+      `References: ${allReferences}`,
+      `In-Reply-To: ${formattedMessageId}`,
       "",
       `--${boundary}`,
       "Content-Type: text/html; charset=UTF-8",
@@ -100,6 +113,10 @@ ${content}
       .replace(/\+/g, "-")
       .replace(/\//g, "_")
       .replace(/=+$/, "");
+
+    // Log the threadID to ensure it's correct
+    console.log("Using threadID:", threadID);
+    console.log("Last message ID:", originalMessage.id);
 
     const response = await gmail.users.messages.send({
       userId: "me",

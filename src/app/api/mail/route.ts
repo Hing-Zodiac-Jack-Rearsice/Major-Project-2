@@ -2,10 +2,30 @@ import { auth } from "@/lib/auth";
 import { getGmailService } from "@/utils/gmail";
 import { NextResponse } from "next/server";
 
+// Helper function to extract email addresses from a header string
+function extractEmails(headerValue: string): string[] {
+  if (!headerValue) return [];
+
+  // Match email addresses that are either:
+  // 1. Inside angle brackets: "Name <email@example.com>"
+  // 2. Plain email addresses: "email@example.com"
+  const emailRegex = /(?:<([^>]+)>|([^,\s<]+@[^,\s>]+))/g;
+  const emails: string[] = [];
+  let match;
+
+  while ((match = emailRegex.exec(headerValue)) !== null) {
+    // match[1] is for addresses in brackets, match[2] is for plain addresses
+    const email = match[1] || match[2];
+    if (email) emails.push(email);
+  }
+
+  return emails;
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const pageToken = searchParams.get("pageToken") || undefined;
-  const category = searchParams.get("category") || "all"; // Default to "all" if no category is specified
+  const category = searchParams.get("category") || "all";
 
   const session = await auth();
   const access_token = session?.accessToken;
@@ -17,7 +37,6 @@ export async function GET(req: Request) {
 
   const gmail = getGmailService(access_token as string, refresh_token as string);
 
-  // Define the query based on the category
   let query = "";
   switch (category) {
     case "drafts":
@@ -48,20 +67,17 @@ export async function GET(req: Request) {
     default:
       query = "in:inbox -in:draft -in:sent -in:trash -in:spam";
       break;
-    // Add more cases as needed
   }
 
-  // Fetch the list of threads
   const response = await (
     await gmail
   ).users.threads.list({
     userId: "me",
-    maxResults: 7, // Number of threads per page
-    pageToken, // Use the pageToken for pagination
-    q: query, // Add the query to filter threads
+    maxResults: 7,
+    pageToken,
+    q: query,
   });
 
-  // Get full thread details for each thread
   const threads = await Promise.all(
     response.data.threads?.map(async (thread) => {
       const fullThread = await (
@@ -69,10 +85,12 @@ export async function GET(req: Request) {
       ).users.threads.get({
         userId: "me",
         id: thread.id as string,
-        format: "full", // Use "full" to get the complete thread details
+        format: "full",
       });
 
-      // Extract messages from the thread
+      // Set to store unique participants across the thread
+      const threadParticipants = new Set<string>();
+
       const messages =
         fullThread.data.messages?.map((message) => {
           const headers = message.payload?.headers || [];
@@ -88,23 +106,32 @@ export async function GET(req: Request) {
             headers.find((header) => header.name?.toLowerCase() === "reply-to")?.value || "";
           const date = headers.find((header) => header.name?.toLowerCase() === "date")?.value || "";
 
-          // Extract the email address from the "From" header
-          const email = from.match(/<([^>]+)>/)?.[1] || from;
+          // Extract all email addresses from headers
+          const fromEmails = extractEmails(from);
+          const toEmails = extractEmails(to);
+          const ccEmails = extractEmails(cc);
+          const replyToEmails = extractEmails(replyTo);
 
-          // Extract the sender's name from the "From" header
+          // Add all participants to the thread-level Set
+          [...fromEmails, ...toEmails, ...ccEmails, ...replyToEmails].forEach((email) => {
+            threadParticipants.add(email);
+          });
+          // Extract attachments
+          const attachments =
+            message.payload?.parts
+              ?.filter((part: any) => part.filename && part.filename.length > 0)
+              .map((part: any) => ({
+                id: part.body?.attachmentId,
+                filename: part.filename,
+                mimeType: part.mimeType,
+                size: part.body?.size,
+              })) || [];
+          // Extract other message information
+          const email = fromEmails[0] || from;
           const name = cleanName(from.replace(/<[^>]+>/, "").trim());
-
-          // Extract the message body (plain text or HTML)
           const text = extractMessageBody(message.payload);
-
-          // Determine if the message is read
           const read = !message.labelIds?.includes("UNREAD");
-
-          // Extract labels (if available)
           const labels = message.labelIds || [];
-
-          // Format replyTo to extract only the email address
-          const formattedReplyTo = replyTo.match(/<([^>]+)>/)?.[1] || replyTo;
 
           return {
             id: message.id,
@@ -115,15 +142,26 @@ export async function GET(req: Request) {
             date,
             read,
             labels,
-            to,
-            cc,
-            replyTo: formattedReplyTo, // Return only the email address
+            to: toEmails,
+            cc: ccEmails,
+            from: fromEmails,
+            replyTo: replyToEmails,
+            attachments,
+            // Include all participants in each message
+            participants: {
+              from: fromEmails,
+              to: toEmails,
+              cc: ccEmails,
+              replyTo: replyToEmails,
+            },
           };
         }) || [];
 
       return {
         id: thread.id,
         messages,
+        // Include the complete list of unique participants for the entire thread
+        participants: Array.from(threadParticipants),
       };
     }) || []
   );
@@ -131,7 +169,7 @@ export async function GET(req: Request) {
   return new NextResponse(
     JSON.stringify({
       threads,
-      nextPageToken: response.data.nextPageToken, // Pass the nextPageToken to the frontend
+      nextPageToken: response.data.nextPageToken,
     }),
     { status: 200 }
   );
@@ -141,7 +179,6 @@ export async function GET(req: Request) {
 function extractMessageBody(payload: any): string {
   if (!payload) return "";
 
-  // Helper function to decode base64 content
   const decodeBody = (data: string) => {
     return Buffer.from(data, "base64").toString("utf-8");
   };
@@ -149,32 +186,60 @@ function extractMessageBody(payload: any): string {
   let htmlBody = "";
   let plainTextBody = "";
 
-  // Function to recursively search for message parts
   const findBodies = (part: any) => {
-    // If this part has a body, check its type and store it
     if (part.mimeType === "text/html" && part.body?.data) {
       htmlBody = decodeBody(part.body.data);
     } else if (part.mimeType === "text/plain" && part.body?.data) {
       plainTextBody = decodeBody(part.body.data);
     }
 
-    // If this part has sub-parts, search through them
     if (part.parts) {
       part.parts.forEach(findBodies);
     }
   };
 
-  // Start the search with the initial payload
   findBodies(payload);
-
-  // Return HTML content if available, otherwise return plain text
   return htmlBody || plainTextBody || "";
 }
 
 // Helper function to clean name strings
 function cleanName(name: string): string {
   return name
-    .replace(/^["']|["']$/g, "") // Remove quotes at start and end
-    .replace(/\\"/g, '"') // Replace escaped quotes with regular quotes
-    .trim(); // Remove any extra whitespace
+    .replace(/^["']|["']$/g, "")
+    .replace(/\\"/g, '"')
+    .trim();
+}
+// Add a new endpoint to fetch attachment content
+export async function GET_ATTACHMENT(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const messageId = searchParams.get("messageId");
+  const attachmentId = searchParams.get("attachmentId");
+
+  const session = await auth();
+  const access_token = session?.accessToken;
+  const refresh_token = session?.refreshToken;
+
+  if (!messageId || !attachmentId) {
+    return new NextResponse("Missing messageId or attachmentId", { status: 400 });
+  }
+
+  if (session === null) return new NextResponse("Unauthorized", { status: 401 });
+  else if (access_token === null) return new NextResponse("No access token", { status: 401 });
+  else if (refresh_token === null) return new NextResponse("No refresh token", { status: 401 });
+
+  const gmail = getGmailService(access_token as string, refresh_token as string);
+
+  try {
+    const attachment = await (
+      await gmail
+    ).users.messages.attachments.get({
+      userId: "me",
+      messageId,
+      id: attachmentId,
+    });
+
+    return new NextResponse(JSON.stringify(attachment.data), { status: 200 });
+  } catch (error) {
+    return new NextResponse("Failed to fetch attachment", { status: 500 });
+  }
 }

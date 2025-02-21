@@ -18,6 +18,7 @@ import {
   Trash2,
   User,
   Paperclip,
+  Download,
 } from "lucide-react";
 
 import { DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -36,16 +37,14 @@ import { processAttachments } from "@/utils/processAttachments";
 export function MailDisplay({ thread }: any) {
   const today = new Date();
   const [replyName, setReplyName] = useState("");
-  // data for sending mail
   const [editorContent, setEditorContent] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
 
-  // Reset editor content and attachments when thread changes
   useEffect(() => {
-    setEditorContent(""); // Reset the editor content
-    setAttachments([]); // Clear attachments
+    setEditorContent("");
+    setAttachments([]);
     setReplyName(thread ? thread.messages[0].from : "");
-  }, [thread]); // Trigger when the `thread` prop changes
+  }, [thread]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
@@ -58,33 +57,20 @@ export function MailDisplay({ thread }: any) {
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // const handleSend = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   // Handle sending the message with editorContent, attachments, to, cc, and subject
-  //   console.log("To:", to);
-  //   console.log("CC:", cc);
-  //   console.log("Subject:", subject);
-  //   console.log("Message:", editorContent);
-  //   console.log("Attachments:", attachments);
-  //   console.log("ThreadID:", thread.id);
-  // };
-
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
-      // Process attachments if any
       const processedAttachments =
         attachments.length > 0 ? await processAttachments(attachments) : undefined;
 
-      // Prepare the message data
       const messageData = {
         threadId: thread.id,
         content: editorContent,
         attachments: processedAttachments,
+        participants: thread.participants, // Add participants to the message data
       };
 
-      // Send the request to our API endpoint
       const response = await fetch(`/api/mail/reply/${thread.id}`, {
         method: "POST",
         headers: {
@@ -96,19 +82,59 @@ export function MailDisplay({ thread }: any) {
       const result = await response.json();
 
       if (result.success) {
-        // Clear the form
         setEditorContent("");
         setAttachments([]);
-        // Maybe show a success notification
         console.log("Reply sent successfully:", result.messageId);
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error("Failed to send reply:", error);
-      // Show error notification to user
     }
   };
+
+  const handleDownloadAttachment = async (messageId: string, attachment: any) => {
+    try {
+      const response = await fetch(
+        `/api/mail/attachment?messageId=${messageId}&attachmentId=${attachment.id}`
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch attachment");
+
+      const data = await response.json();
+
+      // Convert base64 to blob
+      const binaryData = atob(data.data.replace(/-/g, "+").replace(/_/g, "/"));
+      const bytes = new Uint8Array(binaryData.length);
+      for (let i = 0; i < binaryData.length; i++) {
+        bytes[i] = binaryData.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: attachment.mimeType });
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = attachment.filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error downloading attachment:", error);
+    }
+  };
+
+  // const handleSend = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   // Handle sending the message with editorContent, attachments, to, cc, and subject
+  //   console.log("To:", to);
+  //   console.log("CC:", cc);
+  //   console.log("Subject:", subject);
+  //   console.log("Message:", editorContent);
+  //   console.log("Attachments:", attachments);
+  //   console.log("ThreadID:", thread.id);
+  // };
   return (
     <div className="flex h-screen flex-col">
       {/* Header with actions */}
@@ -280,6 +306,38 @@ export function MailDisplay({ thread }: any) {
                       </div>
                     </div>
                   </div>
+                  {/* Add attachments display */}
+                  {message.attachments && message.attachments.length > 0 && (
+                    <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="text-sm font-medium mb-2">Attachments:</h4>
+                      <div className="space-y-2">
+                        {message.attachments.map((attachment: any, index: number) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between bg-white p-2 rounded-md"
+                          >
+                            <div className="flex items-center gap-2">
+                              <Paperclip className="h-4 w-4 text-gray-500" />
+                              <span className="text-sm text-gray-700">{attachment.filename}</span>
+                              <span className="text-xs text-gray-500">
+                                ({Math.round(attachment.size / 1024)} KB)
+                              </span>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadAttachment(message.id, attachment)}
+                              className="text-blue-600 hover:text-blue-800"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <Letter className="bg-white rounded-md text-black" html={message.text ?? ""} />
                 </div>
               ))}
