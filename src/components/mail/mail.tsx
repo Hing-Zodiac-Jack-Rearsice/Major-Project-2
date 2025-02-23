@@ -27,6 +27,7 @@ import { Nav } from "@/components/mail/nav";
 import { type Mail } from "@/components/mail/data";
 import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
+import { ComposeButton } from "./ComposeButton";
 
 interface MailProps {
   accounts: {
@@ -66,6 +67,7 @@ export function Mail({
         }}
         className="items-stretch max-h-screen"
       >
+        {/* left panel */}
         {/* <Button onClick={() => console.log(session)}>log user</Button> */}
         <ResizablePanel
           defaultSize={0}
@@ -83,95 +85,99 @@ export function Mail({
           }}
           className={cn(isCollapsed && "min-w-[50px] transition-all duration-300 ease-in-out")}
         >
-          <div
-            className={cn(
-              "flex h-[52px] items-center justify-center",
-              isCollapsed ? "h-[52px]" : "px-2"
-            )}
-          >
-            <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
+          <div className="flex flex-col h-full">
+            <div
+              className={cn(
+                "flex h-[52px] items-center justify-center",
+                isCollapsed ? "h-[52px]" : "px-2"
+              )}
+            >
+              <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
+            </div>
+            <Separator />
+            <Nav
+              sendSelected={(data) => setSelected(data)}
+              isCollapsed={isCollapsed}
+              links={[
+                {
+                  title: "All",
+                  label: "",
+                  icon: Inbox,
+                  variant: "default",
+                },
+                {
+                  title: "Drafts",
+                  label: "",
+                  icon: File,
+                  variant: "ghost",
+                },
+                {
+                  title: "Sent",
+                  label: "",
+                  icon: Send,
+                  variant: "ghost",
+                },
+                {
+                  title: "Junk",
+                  label: "",
+                  icon: ArchiveX,
+                  variant: "ghost",
+                },
+                {
+                  title: "Trash",
+                  label: "",
+                  icon: Trash2,
+                  variant: "ghost",
+                },
+                {
+                  title: "Archive",
+                  label: "",
+                  icon: Archive,
+                  variant: "ghost",
+                },
+              ]}
+            />
+            <Separator />
+            <Nav
+              sendSelected={(data) => setSelected(data)}
+              isCollapsed={isCollapsed}
+              links={[
+                {
+                  title: "Social",
+                  label: "",
+                  icon: Users2,
+                  variant: "ghost",
+                },
+                {
+                  title: "Updates",
+                  label: "",
+                  icon: AlertCircle,
+                  variant: "ghost",
+                },
+                {
+                  title: "Forums",
+                  label: "",
+                  icon: MessagesSquare,
+                  variant: "ghost",
+                },
+                {
+                  title: "Shopping",
+                  label: "",
+                  icon: ShoppingCart,
+                  variant: "ghost",
+                },
+                {
+                  title: "Promotions",
+                  label: "",
+                  icon: Archive,
+                  variant: "ghost",
+                },
+              ]}
+            />
+            <ComposeButton isCollapsed={isCollapsed} />
           </div>
-          <Separator />
-          <Nav
-            sendSelected={(data) => setSelected(data)}
-            isCollapsed={isCollapsed}
-            links={[
-              {
-                title: "All",
-                label: "",
-                icon: Inbox,
-                variant: "default",
-              },
-              {
-                title: "Drafts",
-                label: "",
-                icon: File,
-                variant: "ghost",
-              },
-              {
-                title: "Sent",
-                label: "",
-                icon: Send,
-                variant: "ghost",
-              },
-              {
-                title: "Junk",
-                label: "",
-                icon: ArchiveX,
-                variant: "ghost",
-              },
-              {
-                title: "Trash",
-                label: "",
-                icon: Trash2,
-                variant: "ghost",
-              },
-              {
-                title: "Archive",
-                label: "",
-                icon: Archive,
-                variant: "ghost",
-              },
-            ]}
-          />
-          <Separator />
-          <Nav
-            sendSelected={(data) => setSelected(data)}
-            isCollapsed={isCollapsed}
-            links={[
-              {
-                title: "Social",
-                label: "",
-                icon: Users2,
-                variant: "ghost",
-              },
-              {
-                title: "Updates",
-                label: "",
-                icon: AlertCircle,
-                variant: "ghost",
-              },
-              {
-                title: "Forums",
-                label: "",
-                icon: MessagesSquare,
-                variant: "ghost",
-              },
-              {
-                title: "Shopping",
-                label: "",
-                icon: ShoppingCart,
-                variant: "ghost",
-              },
-              {
-                title: "Promotions",
-                label: "",
-                icon: Archive,
-                variant: "ghost",
-              },
-            ]}
-          />
         </ResizablePanel>
+        {/* middle panel */}
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={40} minSize={30} className="overflow-y-auto">
           <Tabs defaultValue="all">
