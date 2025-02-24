@@ -75,9 +75,10 @@ export function MailDisplay({ thread }: any) {
         threadId: thread.id,
         content: editorContent,
         attachments: processedAttachments,
-        participants: thread.participants, // Add participants to the message data
+        participants:
+          thread.messages[0].replyTo?.length > 0 ? thread.messages[0].replyTo : thread.participants, // Add participants to the message data
       };
-
+      // console.log(messageData);
       const response = await fetch(`/api/mail/reply/${thread.id}`, {
         method: "POST",
         headers: {
@@ -132,16 +133,6 @@ export function MailDisplay({ thread }: any) {
     }
   };
 
-  // const handleSend = async (e: React.FormEvent) => {
-  //   e.preventDefault();
-  //   // Handle sending the message with editorContent, attachments, to, cc, and subject
-  //   console.log("To:", to);
-  //   console.log("CC:", cc);
-  //   console.log("Subject:", subject);
-  //   console.log("Message:", editorContent);
-  //   console.log("Attachments:", attachments);
-  //   console.log("ThreadID:", thread.id);
-  // };
   return (
     <div className="flex h-screen flex-col">
       {/* Header with actions */}
