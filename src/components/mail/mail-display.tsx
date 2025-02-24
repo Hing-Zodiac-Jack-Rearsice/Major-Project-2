@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "react-quill/dist/quill.snow.css";
 import { Letter } from "react-letter";
 import { addDays } from "date-fns/addDays";
@@ -34,12 +34,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ScrollArea } from "../ui/scroll-area";
 import { processAttachments } from "@/utils/processAttachments";
 import dynamic from "next/dynamic";
+import AIComposeButton from "./ai-compose-button";
 // Dynamically import ReactQuill with SSR disabled
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
 });
 export function MailDisplay({ thread }: any) {
+  const quillRef = useRef<any>(null);
+
   const today = new Date();
   const [replyName, setReplyName] = useState("");
   const [editorContent, setEditorContent] = useState("");
@@ -52,7 +55,20 @@ export function MailDisplay({ thread }: any) {
     setAttachments([]);
     setReplyName(thread ? thread.messages[0].from : "");
   }, [thread]);
+  const onGenerate = (token: string) => {
+    if (quillRef.current) {
+      const editor = quillRef.current.getEditor(); // Access the Quill editor instance
+      const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
 
+      // Insert text at cursor position (or at the end if no cursor position)
+      editor.insertText(range.index, token);
+
+      // Move cursor to end of inserted text
+      editor.setSelection(range.index + token.length, 0);
+    } else {
+      console.error("Quill editor is not available.");
+    }
+  };
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
@@ -379,9 +395,19 @@ export function MailDisplay({ thread }: any) {
                             theme="snow"
                             value={editorContent}
                             onChange={setEditorContent}
-                            // ${replyName}
                             placeholder={`Write a reply...`}
                             className="h-fit"
+                            modules={{
+                              toolbar: [
+                                [{ header: [1, 2, false] }],
+                                ["bold", "italic", "underline", "strike", "blockquote"],
+                                [{ list: "ordered" }, { list: "bullet" }],
+                                ["link", "image"],
+                                ["clean"],
+                              ],
+                            }}
+
+                            // Moved to the end of the props list
                           />
                           <style jsx global>{`
                             .ql-editor {
@@ -442,7 +468,8 @@ export function MailDisplay({ thread }: any) {
                         <Switch id="mute" aria-label="Mute thread" />
                         Mute thread
                       </Label>
-
+                      {/* AI COMPOSE BUTTON */}
+                      <AIComposeButton onGenerate={onGenerate} />
                       <Button type="submit" className="ml-auto">
                         Send
                       </Button>
