@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
+import { debounce } from "lodash";
 import "react-quill/dist/quill.snow.css";
 import { Letter } from "react-letter";
 import { addDays } from "date-fns/addDays";
@@ -31,44 +32,49 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type ReactQuillType from "react-quill"; // Import the type
+
 import { ScrollArea } from "../ui/scroll-area";
 import { processAttachments } from "@/utils/processAttachments";
 import dynamic from "next/dynamic";
 import AIComposeButton from "./ai-compose-button";
+import { Delta } from "quill";
 // Dynamically import ReactQuill with SSR disabled
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
   loading: () => <p>Loading editor...</p>,
-});
+}) as typeof ReactQuillType;
 export function MailDisplay({ thread }: any) {
-  const quillRef = useRef<any>(null);
+  const quillRef = useRef<ReactQuillType>(null);
 
   const today = new Date();
   const [replyName, setReplyName] = useState("");
   const [editorContent, setEditorContent] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [editorLoaded, setEditorLoaded] = useState(false);
-
+  const [content, setContent] = useState("");
   useEffect(() => {
     setEditorLoaded(true);
     setEditorContent("");
     setAttachments([]);
     setReplyName(thread ? thread.messages[0].from : "");
   }, [thread]);
+
   const onGenerate = (token: string) => {
-    if (quillRef.current) {
-      const editor = quillRef.current.getEditor(); // Access the Quill editor instance
-      const range = editor.getSelection() || { index: editor.getLength(), length: 0 };
-
-      // Insert text at cursor position (or at the end if no cursor position)
-      editor.insertText(range.index, token);
-
-      // Move cursor to end of inserted text
-      editor.setSelection(range.index + token.length, 0);
-    } else {
-      console.error("Quill editor is not available.");
-    }
+    // setEditorContent("");
+    setContent((prev) => prev + token);
   };
+  useEffect(() => {
+    setEditorContent(
+      content
+        .split("\n") // Split by new lines
+        .map((line) => `<p>${line.trim()}</p>`) // Wrap each line in <p>
+        .join("")
+    ); // Join without extra spaces
+  }, [content]);
+  // useEffect(() => {
+  //   setContent("");
+  // }, [editorContent]);
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
@@ -406,8 +412,7 @@ export function MailDisplay({ thread }: any) {
                                 ["clean"],
                               ],
                             }}
-
-                            // Moved to the end of the props list
+                            ref={quillRef} // Moved to the end of the props list
                           />
                           <style jsx global>{`
                             .ql-editor {
@@ -469,7 +474,9 @@ export function MailDisplay({ thread }: any) {
                         Mute thread
                       </Label>
                       {/* AI COMPOSE BUTTON */}
-                      <AIComposeButton onGenerate={onGenerate} />
+
+                      <AIComposeButton onGenerate={onGenerate} onClick={() => setContent("")} />
+
                       <Button type="submit" className="ml-auto">
                         Send
                       </Button>

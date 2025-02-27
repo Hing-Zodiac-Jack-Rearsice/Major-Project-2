@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Paperclip, Pen, Send, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { processAttachments } from "@/utils/processAttachments";
+import AIComposeButton from "./ai-compose-button";
 
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
@@ -28,6 +29,7 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
   const [cc, setCc] = React.useState("");
   const [subject, setSubject] = React.useState("");
   const [body, setBody] = React.useState("");
+  const [aiContent, setAiContent] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [composeAttachments, setComposeAttachments] = React.useState<File[]>([]);
 
@@ -41,7 +43,18 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
   const removeComposeAttachment = (index: number) => {
     setComposeAttachments((prev) => prev.filter((_, i) => i !== index));
   };
-
+  const onGen = (token: string) => {
+    // setEditorContent("");
+    setAiContent((prev) => prev + token);
+  };
+  React.useEffect(() => {
+    setBody(
+      aiContent
+        .split("\n") // Split by new lines
+        .map((line) => `<p>${line.trim()}</p>`) // Wrap each line in <p>
+        .join("")
+    ); // Join without extra spaces
+  }, [aiContent]);
   const handleSend = async () => {
     try {
       // Process attachments
@@ -218,7 +231,9 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
 
           <div className="flex justify-between border-t pt-4">
             {/* Updated file input handler */}
+
             <div className="flex items-center gap-2">
+              {/* attach btn */}
               <label
                 htmlFor="compose-file-upload"
                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 cursor-pointer"
@@ -235,13 +250,16 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
               />
             </div>
 
-            <Button
-              onClick={handleSend}
-              className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
-            >
-              <Send className="h-4 w-4" />
-              Send message
-            </Button>
+            <div className="flex gap-2">
+              <AIComposeButton onGenerate={onGen} onClick={() => setAiContent("")} />
+              <Button
+                onClick={handleSend}
+                className="gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
+              >
+                <Send className="h-4 w-4" />
+                Send message
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

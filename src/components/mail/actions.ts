@@ -23,13 +23,14 @@ export async function generateEmail(context: string, prompt: string) {
             ${prompt}
             
             When responding, please keep in mind:
+            - If the context is empty, just follow the user prompt
             - Be helpful, clever, and articulate. 
             - Rely on the provided email context to inform your response.
             - If the context does not contain enough information to fully address the prompt, politely give a draft response.
             - Avoid apologizing for previous responses. Instead, indicate that you have updated your knowledge based on new information.
             - Do not invent or speculate about anything that is not directly supported by the email context.
             - Keep your response focused and relevant to the user's prompt.
-            - Don't add fluff like 'Heres your email' or 'Here's your email' or anything like that.
+            - Don't add fluff like "Heres your email" or "Here's your email", "Here's a template" or anything like that.
             - Directly output the email, no need to say 'Here is your email' or anything like that.
             - No need to output subject
             `,

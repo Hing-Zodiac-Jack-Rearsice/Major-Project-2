@@ -14,9 +14,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "../ui/textarea";
 import { generateEmail } from "./actions";
 import { readStreamableValue } from "ai/rsc";
+import { Bot } from "lucide-react";
 type Props = {
   //   isComposing: boolean;
   onGenerate: (token: string) => void;
+  onClick: () => void;
 };
 
 const AIComposeButton = (props: Props) => {
@@ -27,15 +29,31 @@ const AIComposeButton = (props: Props) => {
     for await (const token of readStreamableValue(output)) {
       if (token) {
         console.log(token);
-        // props.onGenerate(token);
+        props.onGenerate(token);
       }
     }
   };
+  // const aiGenerate = async () => {
+  //   const { output } = await generateEmail("", prompt);
 
+  //   // Define a delay function
+  //   const delay = (ms: any) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  //   for await (const token of readStreamableValue(output)) {
+  //     if (token) {
+  //       console.log(token);
+  //       // Add delay before calling onGenerate
+  //       await delay(200); // Adjust milliseconds as needed
+  //       props.onGenerate(token);
+  //     }
+  //   }
+  // };
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={() => setOpen(true)}>AI</Button>
+        <Button onClick={props.onClick}>
+          <Bot className="size-5" />
+        </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
