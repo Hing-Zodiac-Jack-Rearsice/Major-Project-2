@@ -39,6 +39,7 @@ import { processAttachments } from "@/utils/processAttachments";
 import dynamic from "next/dynamic";
 import AIComposeButton from "./ai-compose-button";
 import { Delta } from "quill";
+import { generate, generateEmail } from "./actions";
 // Dynamically import ReactQuill with SSR disabled
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
@@ -59,6 +60,33 @@ export function MailDisplay({ thread }: any) {
     setAttachments([]);
     setReplyName(thread ? thread.messages[0].from : "");
   }, [thread]);
+
+  // shortcut key
+  // useEffect(() => {
+  //   const handleKeyPress = (event: any) => {
+  //     // Check if Ctrl (or Cmd on Mac) + G is pressed
+  //     if ((event.ctrlKey || event.metaKey) && event.key === "g") {
+  //       event.preventDefault(); // Prevent the default action
+  //       // console.log("Ctrl + G was pressed!");
+  //       aiGenerate();
+  //     }
+  //   };
+
+  //   // Add event listener when the component mounts
+  //   window.addEventListener("keydown", handleKeyPress);
+
+  //   // Clean up the event listener when the component unmounts
+  //   return () => {
+  //     window.removeEventListener("keydown", handleKeyPress);
+  //   };
+  // }, []); // Empty dependency array means this effect runs only once on mount
+
+  // for use with shortcut key
+
+  // const aiGenerate = async () => {
+  //   console.log(editorContent);
+  //   // const { output } = await generate(editorContent);
+  // };
 
   const onGenerate = (token: string) => {
     // setEditorContent("");
@@ -475,7 +503,11 @@ export function MailDisplay({ thread }: any) {
                       </Label>
                       {/* AI COMPOSE BUTTON */}
 
-                      <AIComposeButton onGenerate={onGenerate} onClick={() => setContent("")} />
+                      <AIComposeButton
+                        onGenerate={onGenerate}
+                        onClick={() => setContent("")}
+                        thread={thread}
+                      />
 
                       <Button type="submit" className="ml-auto">
                         Send

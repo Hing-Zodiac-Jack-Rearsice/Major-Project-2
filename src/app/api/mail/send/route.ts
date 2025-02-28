@@ -88,7 +88,7 @@ ${body}
     ].join("\r\n");
 
     // Log the email content for debugging
-    console.log("Email Content:", emailContent);
+    // console.log("Email Content:", emailContent);
 
     // Base64 encode the email content
     const encodedMessage = base64Encode(emailContent)

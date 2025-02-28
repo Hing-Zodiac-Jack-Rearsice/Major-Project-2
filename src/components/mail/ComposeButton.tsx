@@ -84,7 +84,7 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
         body,
         attachments: processedAttachments,
       };
-      console.log("Full payload being sent:", payload);
+      // console.log("Full payload being sent:", payload);
 
       // Send the email
       const response = await fetch("/api/mail/send", {
@@ -96,9 +96,9 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
       });
 
       // Log the response
-      console.log("Response status:", response.status);
+      // console.log("Response status:", response.status);
       const responseData = await response.json();
-      console.log("Response data:", responseData);
+      // console.log("Response data:", responseData);
 
       if (!response.ok) {
         throw new Error(await response.text());
@@ -136,7 +136,7 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
           <Button
             size="lg"
             className={cn(
-              "shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-full",
+              "shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl bg-gradient-to-r text-white rounded-full",
               isCollapsed ? "w-10 h-10 p-0" : "w-[85%] px-6 py-6"
             )}
           >
