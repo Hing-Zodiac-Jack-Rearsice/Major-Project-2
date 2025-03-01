@@ -28,6 +28,7 @@ import { type Mail } from "@/components/mail/data";
 import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
 import { ComposeButton } from "./ComposeButton";
+import AskAI from "./ask-ai";
 
 interface MailProps {
   accounts: {
@@ -95,6 +96,7 @@ export function Mail({
               <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
             </div>
             <Separator />
+
             <Nav
               sendSelected={(data) => setSelected(data)}
               isCollapsed={isCollapsed}
@@ -174,6 +176,7 @@ export function Mail({
                 },
               ]}
             />
+            <AskAI isCollapsed={isCollapsed} thread={selectedThread} />
             <ComposeButton isCollapsed={isCollapsed} />
           </div>
         </ResizablePanel>
