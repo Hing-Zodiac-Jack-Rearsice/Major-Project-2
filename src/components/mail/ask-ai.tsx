@@ -11,10 +11,38 @@ import { useSession } from "next-auth/react";
 import { Textarea } from "../ui/textarea";
 import { ScrollArea } from "../ui/scroll-area";
 import { Input } from "../ui/input";
+import { threadId } from "worker_threads";
 
 const AskAI = ({ isCollapsed, thread }: { isCollapsed: boolean; thread: any }) => {
   const { data: session } = useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [initialMessages, setInitialMessages] = useState<any[]>([]);
+  const [isInitialLoading, setIsInitialLoading] = useState(false);
+  // Add a key to force the useChat hook to reset
+  const [chatKey, setChatKey] = useState(thread?.id || "default");
+  // Fetch existing messages when thread changes
+  useEffect(() => {
+    if (thread?.id) {
+      fetchMessages();
+      setChatKey(thread.id);
+    }
+  }, [thread?.id]);
+
+  // Function to fetch existing messages
+  const fetchMessages = async () => {
+    if (!thread?.id) return;
+
+    setIsInitialLoading(true);
+    try {
+      const response = await fetch(`/api/chat/messages?threadId=${thread.id}`);
+      const data = await response.json();
+      setInitialMessages(data);
+    } catch (error) {
+      console.error("Failed to fetch messages:", error);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
 
   // Get thread context
   const getThreadContext = () => {
@@ -33,12 +61,17 @@ Body: ${turndown.turndown(messages.text) || ""}
     context += `My name is ${session?.user.name} and my email is ${session?.user.email}`;
     return context;
   };
-
+  // Only initialize useChat when thread is available
+  const threadAvailable = Boolean(thread && thread.id);
   // Use the useChat hook from AI SDK
+  // Use the useChat hook from AI SDK with the key prop to force reset
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    id: chatKey, // Add this line to force reset on thread change
+    initialMessages: initialMessages,
     api: "/api/chat",
     body: {
       mailContext: getThreadContext(),
+      threadId: threadAvailable ? thread.id : "",
     },
   });
 
@@ -71,6 +104,7 @@ Body: ${turndown.turndown(messages.text) || ""}
   // Full component when not collapsed
   return (
     <div className="border-t">
+      {/* <Button onClick={() => console.log(thread.id)}>log threadid</Button> */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20 p-3 border-b border-blue-100 dark:border-blue-900/30">
         <div className="flex items-center gap-2 px-1">
           <div className="bg-blue-100 dark:bg-blue-900/50 p-1.5 rounded-full">
