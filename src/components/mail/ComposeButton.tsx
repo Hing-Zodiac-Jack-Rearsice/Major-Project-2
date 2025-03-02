@@ -137,7 +137,7 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
             size="lg"
             className={cn(
               "shadow-lg transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-xl bg-gradient-to-r text-white rounded-full",
-              isCollapsed ? "w-10 h-10 p-0" : "w-[85%] px-6 py-6"
+              isCollapsed ? "w-10 h-10 p-0" : "w-[90%] px-6 py-6"
             )}
           >
             <Pen className={cn("h-5 w-5", !isCollapsed && "mr-2")} />

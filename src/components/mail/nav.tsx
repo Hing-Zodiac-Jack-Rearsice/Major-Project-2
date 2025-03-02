@@ -16,14 +16,25 @@ interface NavProps {
   }[];
 }
 
-export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
-  const [selected, setSelected] = React.useState("inbox");
+export function Nav({
+  links,
+  isCollapsed,
+  sendSelected,
+  selectedItem,
+}: NavProps & { selectedItem: string }) {
+  // Change the initial state from "inbox" to "All"
+  const [selected, setSelected] = React.useState("All");
+
+  // Call sendSelected with "All" when component mounts
+  React.useEffect(() => {
+    sendSelected(selected);
+  }, []);
 
   const handleClick = (text: string) => {
     setSelected(text);
     // send selected text back to the parent
     sendSelected(text);
-    console.log("child: " + text);
+    // console.log("child: " + text);
   };
 
   return (
@@ -34,6 +45,8 @@ export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
       <nav className="grid gap-1 px-2 group-[[data-collapsed=true]]:justify-center group-[[data-collapsed=true]]:px-2">
         {links.map((link, index) => {
           const itemKey = `${link.title}-${index}`;
+          // Determine variant based on selected state
+          const variant = selectedItem === link.title ? "default" : "ghost";
 
           return isCollapsed ? (
             <Tooltip key={itemKey} delayDuration={0}>
@@ -44,9 +57,9 @@ export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
                     handleClick(link.title);
                   }}
                   className={cn(
-                    buttonVariants({ variant: link.variant, size: "icon" }),
+                    buttonVariants({ variant, size: "icon" }),
                     "h-9 w-9",
-                    link.variant === "default" &&
+                    variant === "default" &&
                       "dark:bg-muted dark:text-muted-foreground dark:hover:bg-muted dark:hover:text-white"
                   )}
                 >
@@ -67,8 +80,8 @@ export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
                 handleClick(link.title);
               }}
               className={cn(
-                buttonVariants({ variant: link.variant, size: "sm" }),
-                link.variant === "default" &&
+                buttonVariants({ variant, size: "sm" }),
+                variant === "default" &&
                   "dark:bg-muted dark:text-white dark:hover:bg-muted dark:hover:text-white",
                 "justify-start"
               )}
@@ -79,7 +92,7 @@ export function Nav({ links, isCollapsed, sendSelected }: NavProps) {
                 <span
                   className={cn(
                     "ml-auto",
-                    link.variant === "default" && "text-background dark:text-white"
+                    variant === "default" && "text-background dark:text-white"
                   )}
                 >
                   {link.label}

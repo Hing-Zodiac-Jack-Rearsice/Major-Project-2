@@ -30,18 +30,6 @@ import { useSession } from "next-auth/react";
 import { ComposeButton } from "./ComposeButton";
 import AskAI from "./ask-ai";
 
-interface MailProps {
-  accounts: {
-    label: string;
-    email: string;
-    icon: React.ReactNode;
-  }[];
-  threads: { id: string; messages: Mail[] }[]; // Updated to use threads
-  defaultLayout: number[] | undefined;
-  defaultCollapsed?: boolean;
-  navCollapsedSize: number;
-}
-
 export function Mail({
   accounts,
   threads,
@@ -98,6 +86,7 @@ export function Mail({
             <Separator />
 
             <Nav
+              selectedItem={selected}
               sendSelected={(data) => setSelected(data)}
               isCollapsed={isCollapsed}
               links={[
@@ -140,42 +129,45 @@ export function Mail({
               ]}
             />
             <Separator />
-            <Nav
-              sendSelected={(data) => setSelected(data)}
-              isCollapsed={isCollapsed}
-              links={[
-                {
-                  title: "Social",
-                  label: "",
-                  icon: Users2,
-                  variant: "ghost",
-                },
-                {
-                  title: "Updates",
-                  label: "",
-                  icon: AlertCircle,
-                  variant: "ghost",
-                },
-                {
-                  title: "Forums",
-                  label: "",
-                  icon: MessagesSquare,
-                  variant: "ghost",
-                },
-                {
-                  title: "Shopping",
-                  label: "",
-                  icon: ShoppingCart,
-                  variant: "ghost",
-                },
-                {
-                  title: "Promotions",
-                  label: "",
-                  icon: Archive,
-                  variant: "ghost",
-                },
-              ]}
-            />
+            <div className="overflow-y-auto scroll-smooth">
+              <Nav
+                selectedItem={selected} // Pass the same shared selected state
+                sendSelected={(data) => setSelected(data)}
+                isCollapsed={isCollapsed}
+                links={[
+                  {
+                    title: "Social",
+                    label: "",
+                    icon: Users2,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Updates",
+                    label: "",
+                    icon: AlertCircle,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Forums",
+                    label: "",
+                    icon: MessagesSquare,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Shopping",
+                    label: "",
+                    icon: ShoppingCart,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Promotions",
+                    label: "",
+                    icon: Archive,
+                    variant: "ghost",
+                  },
+                ]}
+              />
+            </div>
             <AskAI isCollapsed={isCollapsed} thread={selectedThread} />
             <ComposeButton isCollapsed={isCollapsed} />
           </div>
