@@ -29,6 +29,7 @@ import { Button } from "../ui/button";
 import { useSession } from "next-auth/react";
 import { ComposeButton } from "./ComposeButton";
 import AskAI from "./ask-ai";
+import { ScrollArea } from "../ui/scroll-area";
 
 export function Mail({
   accounts,
@@ -84,52 +85,53 @@ export function Mail({
               <AccountSwitcher isCollapsed={isCollapsed} accounts={accounts} />
             </div>
             <Separator />
-
-            <Nav
-              selectedItem={selected}
-              sendSelected={(data) => setSelected(data)}
-              isCollapsed={isCollapsed}
-              links={[
-                {
-                  title: "All",
-                  label: "",
-                  icon: Inbox,
-                  variant: "default",
-                },
-                {
-                  title: "Drafts",
-                  label: "",
-                  icon: File,
-                  variant: "ghost",
-                },
-                {
-                  title: "Sent",
-                  label: "",
-                  icon: Send,
-                  variant: "ghost",
-                },
-                {
-                  title: "Junk",
-                  label: "",
-                  icon: ArchiveX,
-                  variant: "ghost",
-                },
-                {
-                  title: "Trash",
-                  label: "",
-                  icon: Trash2,
-                  variant: "ghost",
-                },
-                {
-                  title: "Archive",
-                  label: "",
-                  icon: Archive,
-                  variant: "ghost",
-                },
-              ]}
-            />
+            <ScrollArea className="overflow-y-auto scroll-smooth">
+              <Nav
+                selectedItem={selected}
+                sendSelected={(data) => setSelected(data)}
+                isCollapsed={isCollapsed}
+                links={[
+                  {
+                    title: "All",
+                    label: "",
+                    icon: Inbox,
+                    variant: "default",
+                  },
+                  {
+                    title: "Drafts",
+                    label: "",
+                    icon: File,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Sent",
+                    label: "",
+                    icon: Send,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Junk",
+                    label: "",
+                    icon: ArchiveX,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Trash",
+                    label: "",
+                    icon: Trash2,
+                    variant: "ghost",
+                  },
+                  {
+                    title: "Archive",
+                    label: "",
+                    icon: Archive,
+                    variant: "ghost",
+                  },
+                ]}
+              />
+            </ScrollArea>
             <Separator />
-            <div className="overflow-y-auto scroll-smooth">
+            <ScrollArea className="overflow-y-auto scroll-smooth">
               <Nav
                 selectedItem={selected} // Pass the same shared selected state
                 sendSelected={(data) => setSelected(data)}
@@ -167,7 +169,7 @@ export function Mail({
                   },
                 ]}
               />
-            </div>
+            </ScrollArea>
             <AskAI isCollapsed={isCollapsed} thread={selectedThread} />
             <ComposeButton isCollapsed={isCollapsed} />
           </div>
