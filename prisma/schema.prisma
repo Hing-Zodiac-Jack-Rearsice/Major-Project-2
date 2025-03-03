@@ -17,11 +17,13 @@ model User {
   sessions      Session[]
   Authenticator Authenticator[]
   chatMessages  ChatMessage[]   // Add this line
-  
+  prompts       Int             @default(0)
+  lastPromptReset DateTime?     @default(now())
+  isSubscribed  Boolean         @default(false) 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
- 
+
 model Account {
   id                String  @id @default(auto()) @map("_id") @db.ObjectId
   userId            String  @db.ObjectId
@@ -35,7 +37,7 @@ model Account {
   scope             String?
   id_token          String? @db.String
   session_state     String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
  

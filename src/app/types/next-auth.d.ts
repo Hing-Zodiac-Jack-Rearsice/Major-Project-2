@@ -7,6 +7,8 @@ declare module "next-auth/jwt" {
     role?: string;
     accessToken?: string;
     refreshToken?: string;
+    prompts?: number;
+    isSubscribed?: boolean;
     // stripeConnectedLinked?: boolean;
   }
 }
@@ -14,7 +16,8 @@ declare module "next-auth/jwt" {
 declare module "next-auth" {
   interface User extends DefaultUser {
     role?: string;
-    // stripeConnectedLinked?: boolean;
+    prompts?: number;
+    isSubscribed?: boolean;
   }
   interface Session {
     accessToken?: string;
@@ -22,7 +25,8 @@ declare module "next-auth" {
     user: {
       id: string;
       role: string;
-      //   stripeConnectedLinked: boolean;
+      prompts: number;
+      isSubscribed: boolean;
     } & DefaultSession["user"];
   }
 }
