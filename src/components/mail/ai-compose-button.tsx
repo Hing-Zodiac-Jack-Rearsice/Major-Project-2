@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -8,17 +8,17 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Textarea } from "../ui/textarea";
 import { generateEmail } from "./actions";
 import { readStreamableValue } from "ai/rsc";
-import { Bot } from "lucide-react";
+import { Bot, X } from "lucide-react";
 import { turndown } from "./turndown";
 import { useSession } from "next-auth/react";
+import { usePromptStore } from "@/state/promptStore";
+
 type Props = {
-  //   isComposing: boolean;
   onGenerate: (token: string) => void;
   onClick: () => void;
   thread?: {
@@ -30,49 +30,59 @@ const AIComposeButton = (props: Props) => {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const { data: session } = useSession();
-  // const [thread, setThread] = useState<any>([]);
-  // useEffect(() => {
-  //   setThread(props.thread);
-  // }, []);
-  // useEffect(() => {
-  //   setThread(props.thread);
-  // }, [thread]);
+  const { decrementPromptCount, promptsRemaining } = usePromptStore();
+
   const aiGenerate = async () => {
-    let context = "";
-    if (props.thread) {
-      for (const messages of props.thread.messages) {
-        const content = `
-      Subject: ${messages.subject}
-      From: ${messages.email}
-      Sent: ${new Date(messages.date).toLocaleString()}
-      Body: ${turndown.turndown(messages.text) || ""}
-      `;
-        context += content;
+    try {
+      let context = "";
+      if (props.thread) {
+        for (const messages of props.thread.messages) {
+          const content = `
+       Subject: ${messages.subject}
+       From: ${messages.email}
+       Sent: ${new Date(messages.date).toLocaleString()}
+       Body: ${turndown.turndown(messages.text) || ""}
+       `;
+          context += content;
+        }
       }
-    }
-    context += `My name is ${session?.user.name} and my email is ${session?.user.email}`;
-    // console.log(context);
-    const { output } = await generateEmail(context, prompt);
-    for await (const token of readStreamableValue(output)) {
-      if (token) {
-        // console.log(token);
-        props.onGenerate(token);
+      context += `My name is ${session?.user.name} and my email is ${session?.user.email}`;
+
+      const { output } = await generateEmail(context, prompt);
+      for await (const token of readStreamableValue(output)) {
+        if (token) {
+          props.onGenerate(token);
+        }
       }
+    } catch (error) {
+      console.error("Error generating email:", error);
+    } finally {
+      await decrementPromptCount();
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button onClick={props.onClick} variant="default" className="rounded-full">
+        <Button
+          onClick={props.onClick}
+          variant="default"
+          className="rounded-full"
+          disabled={!promptsRemaining || promptsRemaining <= 0}
+        >
           <Bot className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
-        {/* printing out the messages */}
-        {/* <Button onClick={() => console.log(props.thread?.messages)}>Log thread</Button> */}
         <DialogHeader>
-          <DialogTitle>AI Compose</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>AI Compose</DialogTitle>
+            <DialogClose asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogClose>
+          </div>
           <DialogDescription>AI will help you compose your mails.</DialogDescription>
         </DialogHeader>
         <Textarea
@@ -80,15 +90,18 @@ const AIComposeButton = (props: Props) => {
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Enter your prompt..."
         />
-        <Button
-          onClick={() => {
-            aiGenerate();
-            setOpen(false);
-            setPrompt("");
-          }}
-        >
-          Generate
-        </Button>
+        <DialogFooter className="mt-4">
+          <DialogClose asChild>
+            <Button
+              onClick={() => {
+                aiGenerate();
+                setPrompt("");
+              }}
+            >
+              Generate
+            </Button>
+          </DialogClose>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

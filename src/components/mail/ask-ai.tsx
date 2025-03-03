@@ -12,8 +12,11 @@ import { Textarea } from "../ui/textarea";
 import { ScrollArea } from "../ui/scroll-area";
 import { Input } from "../ui/input";
 import { threadId } from "worker_threads";
+import { usePromptStore } from "@/state/promptStore";
+import { useToast } from "@/hooks/use-toast";
 
 const AskAI = ({ isCollapsed, thread }: { isCollapsed: boolean; thread: any }) => {
+  const { toast } = useToast();
   const { data: session } = useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [initialMessages, setInitialMessages] = useState<any[]>([]);
@@ -21,6 +24,7 @@ const AskAI = ({ isCollapsed, thread }: { isCollapsed: boolean; thread: any }) =
   // Add a key to force the useChat hook to reset
   const [chatKey, setChatKey] = useState(thread?.id || "default");
   // Fetch existing messages when thread changes
+  const { decrementPromptCount, promptsRemaining } = usePromptStore();
   useEffect(() => {
     if (thread?.id) {
       fetchMessages();
@@ -73,6 +77,9 @@ Body: ${turndown.turndown(messages.text) || ""}
       mailContext: getThreadContext(),
       threadId: threadAvailable ? thread.id : "",
     },
+    onFinish: async () => {
+      await decrementPromptCount();
+    },
   });
 
   // Scroll to bottom on new messages
@@ -84,6 +91,14 @@ Body: ${turndown.turndown(messages.text) || ""}
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!promptsRemaining || promptsRemaining <= 0) {
+      toast({
+        title: "You have reached your prompt limit.",
+        description: "Please try again tomorrow.",
+        duration: 3000,
+      });
+      return;
+    }
     handleSubmit(e);
   };
 

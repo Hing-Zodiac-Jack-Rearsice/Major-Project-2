@@ -1,38 +1,59 @@
-// src/store/promptStore.ts
+// stores/promptStore.ts
 import { create } from "zustand";
 
 interface PromptState {
-  promptsUsed: number;
-  promptsLimit: number;
-  lastReset: Date | null;
-  isSubscribed: boolean;
+  promptsRemaining: number | null;
   isLoading: boolean;
-
-  // Actions
-  setPromptData: (data: Partial<PromptState>) => void;
-  reset: () => void;
+  error: string | null;
+  fetchPromptCount: () => Promise<void>;
+  decrementPromptCount: () => void;
 }
 
-export const usePromptStore = create<PromptState>()((set) => ({
-  promptsUsed: 0,
-  promptsLimit: 15,
-  lastReset: null,
-  isSubscribed: false,
-  isLoading: true,
+export const usePromptStore = create<PromptState>((set, get) => ({
+  promptsRemaining: null,
+  isLoading: false,
+  error: null,
 
-  setPromptData: (data) =>
-    set((state) => ({
-      ...state,
-      ...data,
-      isLoading: false,
-    })),
+  fetchPromptCount: async () => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await fetch("/api/chat/prompts");
+      if (!response.ok) {
+        throw new Error("Failed to fetch prompt count");
+      }
+      const data = await response.json();
+      set({ promptsRemaining: data.promptsRemaining, isLoading: false });
+    } catch (error) {
+      set({
+        error: error instanceof Error ? error.message : "Unknown error",
+        isLoading: false,
+      });
+    }
+  },
 
-  reset: () =>
-    set((state) => ({
-      promptsUsed: 0,
-      promptsLimit: state.isSubscribed ? 45 : 15,
-      lastReset: null,
-      isLoading: true,
-      isSubscribed: state.isSubscribed, // Keep the subscription status
-    })),
+  decrementPromptCount: async () => {
+    // First update optimistically on the client
+    const { promptsRemaining } = get();
+    if (promptsRemaining !== null && promptsRemaining !== Infinity && promptsRemaining > 0) {
+      set({ promptsRemaining: promptsRemaining - 1 });
+    }
+
+    // Then update in the database
+    try {
+      const response = await fetch("/api/chat/prompts", {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to decrement prompt count");
+      }
+      // Get the updated count from the server
+      const data = await response.json();
+      set({ promptsRemaining: data.promptsRemaining });
+    } catch (error) {
+      // If there's an error, fetch the correct count from the server
+      get().fetchPromptCount();
+      console.error("Error decrementing prompt count:", error);
+    }
+  },
 }));

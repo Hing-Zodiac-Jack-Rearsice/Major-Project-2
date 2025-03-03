@@ -30,6 +30,7 @@ import { useSession } from "next-auth/react";
 import { ComposeButton } from "./ComposeButton";
 import AskAI from "./ask-ai";
 import { ScrollArea } from "../ui/scroll-area";
+import { usePromptStore } from "@/state/promptStore";
 
 export function Mail({
   accounts,
@@ -47,7 +48,11 @@ export function Mail({
     lastMessage: Mail;
   } | null>(null);
   const [selected, setSelected] = React.useState("all");
-
+  const { promptsRemaining, fetchPromptCount, decrementPromptCount } = usePromptStore();
+  // Fetch prompt count when component mounts
+  React.useEffect(() => {
+    fetchPromptCount();
+  }, []);
   return (
     <TooltipProvider delayDuration={0}>
       <ResizablePanelGroup
@@ -180,7 +185,7 @@ export function Mail({
           <Tabs defaultValue="all">
             <div className="flex items-center px-4 py-2">
               <h1 className="text-xl font-bold">Inbox</h1>
-              <h1 className="text-xl font-bold">p: {}</h1>
+              <h1 className="text-xl font-bold">p: {promptsRemaining}</h1>
               <TabsList className="ml-auto">
                 <TabsTrigger value="all" className="text-zinc-600 dark:text-zinc-200">
                   All mail
