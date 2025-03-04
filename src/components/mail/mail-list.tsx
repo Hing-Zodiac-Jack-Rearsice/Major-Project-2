@@ -135,15 +135,6 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
     };
   }, [lastToken, loading]);
 
-  // Show loading spinner during initial load or category change
-  if (initialLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <div className="relative flex flex-col h-screen">
       <div className="relative px-4 my-4">
@@ -155,51 +146,59 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
       </div>
       <ScrollArea ref={scrollAreaRef} className="flex-1">
         <div className="flex flex-col gap-2 p-4 pt-0">
-          {threads.map((thread) => (
-            <button
-              key={thread.id}
-              onClick={() => onThreadSelect(thread)}
-              className={cn(
-                "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent"
-              )}
-            >
-              <div className="flex w-full flex-col gap-1">
-                <div className="flex items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="font-semibold">{thread.lastMessage.name}</div>
-                    {thread.unreadCount > 0 && (
-                      <Badge variant="secondary" className="ml-auto">
-                        {thread.unreadCount}
-                      </Badge>
+          {initialLoading ? (
+            <div className="flex h-full items-center justify-center">
+              <Loader2 className="h-6 w-6 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {threads.map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => onThreadSelect(thread)}
+                  className={cn(
+                    "flex flex-col items-start gap-2 rounded-lg border p-3 text-left text-sm transition-all hover:bg-accent"
+                  )}
+                >
+                  <div className="flex w-full flex-col gap-1">
+                    <div className="flex items-center">
+                      <div className="flex items-center gap-2">
+                        <div className="font-semibold">{thread.lastMessage.name}</div>
+                        {thread.unreadCount > 0 && (
+                          <Badge variant="secondary" className="ml-auto">
+                            {thread.unreadCount}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="ml-auto text-xs">
+                        {formatDistanceToNow(new Date(thread.lastMessage.date), {
+                          addSuffix: true,
+                        })}
+                      </div>
+                    </div>
+                    <div className="text-xs font-medium">{thread.lastMessage.subject}</div>
+                    {thread.messages.length > 1 && (
+                      <div className="text-xs text-muted-foreground">
+                        {thread.messages.length} messages
+                      </div>
                     )}
                   </div>
-                  <div className="ml-auto text-xs">
-                    {formatDistanceToNow(new Date(thread.lastMessage.date), {
-                      addSuffix: true,
-                    })}
-                  </div>
-                </div>
-                <div className="text-xs font-medium">{thread.lastMessage.subject}</div>
-                {thread.messages.length > 1 && (
-                  <div className="text-xs text-muted-foreground">
-                    {thread.messages.length} messages
-                  </div>
-                )}
+                  {thread.lastMessage.labels?.length ? (
+                    <div className="flex items-center gap-2">
+                      {thread.lastMessage.labels.map((label) => (
+                        <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
+                          {label.split("_")[label.split("_").length - 1]}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                </button>
+              ))}
+              <div ref={observerTarget} className="flex justify-center py-10">
+                {loading && <Loader2 className="animate-spin" />}
               </div>
-              {thread.lastMessage.labels?.length ? (
-                <div className="flex items-center gap-2">
-                  {thread.lastMessage.labels.map((label) => (
-                    <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                      {label.split("_")[label.split("_").length - 1]}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-            </button>
-          ))}
-          <div ref={observerTarget} className="flex justify-center py-10">
-            {loading && <Loader2 className="animate-spin" />}
-          </div>
+            </>
+          )}
         </div>
       </ScrollArea>
     </div>
