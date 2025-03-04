@@ -3,6 +3,7 @@ import { create } from "zustand";
 
 interface PromptState {
   promptsRemaining: number | null;
+  isSubscribed: boolean | null;
   isLoading: boolean;
   error: string | null;
   fetchPromptCount: () => Promise<void>;
@@ -11,6 +12,7 @@ interface PromptState {
 
 export const usePromptStore = create<PromptState>((set, get) => ({
   promptsRemaining: null,
+  isSubscribed: false,
   isLoading: false,
   error: null,
 
@@ -23,6 +25,7 @@ export const usePromptStore = create<PromptState>((set, get) => ({
       }
       const data = await response.json();
       set({ promptsRemaining: data.promptsRemaining, isLoading: false });
+      set({ isSubscribed: data.isSubscribed });
     } catch (error) {
       set({
         error: error instanceof Error ? error.message : "Unknown error",

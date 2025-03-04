@@ -25,10 +25,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, account }) {
-      if (account) {
-        token.prompts = account.prompts as number;
-        token.isSubscribed = account.isSubscribed as boolean;
+    async jwt({ token, user, account }) {
+      if (user && account) {
+        token.prompts = user.prompts as number;
+        token.isSubscribed = user.isSubscribed as boolean;
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
       }

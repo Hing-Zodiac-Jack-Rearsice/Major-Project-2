@@ -35,8 +35,9 @@ export async function GET(req: Request) {
     } else {
       promptsRemaining = DAILY_PROMPT_LIMIT - user.prompts;
     }
-
-    return new NextResponse(JSON.stringify({ promptsRemaining }), { status: 200 });
+    return new NextResponse(JSON.stringify({ promptsRemaining, isSubscribed: user.isSubscribed }), {
+      status: 200,
+    });
   } catch (error) {
     console.error("Failed to get prompt count:", error);
     return new NextResponse("Failed to get prompt count", { status: 500 });
