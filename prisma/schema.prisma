@@ -20,6 +20,8 @@ model User {
   prompts       Int             @default(0)
   lastPromptReset DateTime?     @default(now())
   isSubscribed  Boolean         @default(false) 
+  customerID String?
+  priceID String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -37,7 +39,6 @@ model Account {
   scope             String?
   id_token          String? @db.String
   session_state     String?
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
  

@@ -32,7 +32,7 @@ const statusVariants = cva(
 export default function PromptStatus({ promptsRemaining, isSubscribed }: PromptStatusProps) {
   const maxPrompts = isSubscribed ? 45 : 15;
   const percentRemaining = Math.min(100, (promptsRemaining / maxPrompts) * 100);
-
+  const { data: session } = useSession();
   // Determine color based on remaining prompts
   const getProgressColor = () => {
     if (percentRemaining > 60) return "bg-emerald-500";
@@ -107,7 +107,7 @@ export default function PromptStatus({ promptsRemaining, isSubscribed }: PromptS
               </div>
               <p className="text-xs text-muted-foreground">
                 {isSubscribed
-                  ? "Resets at the end of your billing cycle"
+                  ? "Resets at the end of each day"
                   : "Upgrade to Premium for more prompts"}
               </p>
             </div>
@@ -115,14 +115,18 @@ export default function PromptStatus({ promptsRemaining, isSubscribed }: PromptS
 
           {!isSubscribed && (
             <div className="border-t bg-muted/30 p-3">
-              <Button
-                variant="default"
-                size="sm"
-                className="w-full gap-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black"
+              <a
+                href={`https://buy.stripe.com/test_dR63fxg1117ObbGcMM?prefilled_email=${session?.user?.email}`}
               >
-                Upgrade to Premium
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full gap-1 bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-black"
+                >
+                  Upgrade to Premium
+                  <ChevronRight className="h-3.5 w-3.5" />
+                </Button>
+              </a>
             </div>
           )}
         </div>
