@@ -26,6 +26,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const pageToken = searchParams.get("pageToken") || undefined;
   const category = searchParams.get("category") || "all";
+  const searchQuery = searchParams.get("search") || "";
 
   const session = await auth();
   const access_token = session?.accessToken;
@@ -37,6 +38,7 @@ export async function GET(req: Request) {
 
   const gmail = getGmailService(access_token as string, refresh_token as string);
 
+  // Build the query combining category and search terms
   let query = "";
   switch (category) {
     case "drafts":
@@ -67,6 +69,17 @@ export async function GET(req: Request) {
     default:
       query = "in:inbox -in:draft -in:sent -in:trash -in:spam";
       break;
+  }
+
+  // Append search query if provided
+  if (searchQuery) {
+    // Escape special characters in the search query
+    const escapedSearchQuery = searchQuery
+      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/\\/g, "\\\\"); // Escape backslashes
+
+    // Combine search with existing query
+    query += ` "${escapedSearchQuery}"`;
   }
 
   const response = await (
@@ -116,6 +129,7 @@ export async function GET(req: Request) {
           [...fromEmails, ...toEmails, ...ccEmails, ...replyToEmails].forEach((email) => {
             threadParticipants.add(email);
           });
+
           // Extract attachments
           const attachments =
             message.payload?.parts
@@ -126,6 +140,7 @@ export async function GET(req: Request) {
                 mimeType: part.mimeType,
                 size: part.body?.size,
               })) || [];
+
           // Extract other message information
           const email = fromEmails[0] || from;
           const name = cleanName(from.replace(/<[^>]+>/, "").trim());
@@ -147,7 +162,6 @@ export async function GET(req: Request) {
             from: fromEmails,
             replyTo: replyToEmails,
             attachments,
-            // Include all participants in each message
             participants: {
               from: fromEmails,
               to: toEmails,
@@ -160,7 +174,6 @@ export async function GET(req: Request) {
       return {
         id: thread.id,
         messages,
-        // Include the complete list of unique participants for the entire thread
         participants: Array.from(threadParticipants),
       };
     }) || []
@@ -174,7 +187,6 @@ export async function GET(req: Request) {
     { status: 200 }
   );
 }
-
 // Helper function to extract the message body
 function extractMessageBody(payload: any): string {
   if (!payload) return "";

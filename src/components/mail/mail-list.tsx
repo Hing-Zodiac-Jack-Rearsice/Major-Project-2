@@ -1,12 +1,13 @@
 "use client";
-import { ComponentProps, useEffect, useState, useRef } from "react";
+import { ComponentProps, useEffect, useState, useRef, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns/formatDistanceToNow";
 
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { Mail } from "./data";
+import { Input } from "../ui/input";
 
 interface Thread {
   id: string;
@@ -18,6 +19,7 @@ interface Thread {
 interface MailListProps {
   onThreadSelect: (thread: Thread) => void;
   selected: string;
+  searchQuery?: string;
 }
 
 export function MailList({ onThreadSelect, selected }: MailListProps) {
@@ -28,13 +30,14 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
   const [category, setCategory] = useState("all");
   const observerTarget = useRef(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const fetchThreads = async () => {
+  const fetchThreads = useCallback(async () => {
     try {
       setLoading(true);
       setInitialLoading(true);
       setThreads([]); // Clear existing threads while loading new category
-      const res = await fetch(`/api/mail?category=${category}`);
+      const res = await fetch(`/api/mail?category=${category}&search=${searchQuery}`);
       const data = await res.json();
 
       // Process threads to include unread count and last message
@@ -57,13 +60,17 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
       setLoading(false);
       setInitialLoading(false);
     }
-  };
+  }, [category, searchQuery, onThreadSelect]);
 
   const fetchMore = async () => {
     if (!lastToken || loading) return;
     try {
       setLoading(true);
-      const res = await fetch(`/api/mail?category=${category}&pageToken=${lastToken}`);
+      const res = await fetch(
+        `/api/mail?category=${category}&pageToken=${lastToken}&search=${encodeURIComponent(
+          searchQuery
+        )}`
+      );
       const data = await res.json();
 
       // Process new threads
@@ -87,7 +94,7 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
     setCategory(selected.toLowerCase());
   }, [selected]);
 
-  // Fetch threads and reset scroll when category changes
+  // Fetch threads and reset scroll when category or search query changes
   useEffect(() => {
     fetchThreads();
     // Reset scroll position
@@ -99,7 +106,7 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
         scrollableNode.scrollTop = 0;
       }
     }
-  }, [category]);
+  }, [category, searchQuery, fetchThreads]);
 
   // Infinite scroll observer
   useEffect(() => {
@@ -138,7 +145,14 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
   }
 
   return (
-    <div className="relative flex flex-col h-[calc(100vh-8.5rem)]">
+    <div className="relative flex flex-col h-screen">
+      <div className="relative px-4 my-4">
+        <Input
+          placeholder="Search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
       <ScrollArea ref={scrollAreaRef} className="flex-1">
         <div className="flex flex-col gap-2 p-4 pt-0">
           {threads.map((thread) => (
@@ -183,7 +197,7 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
               ) : null}
             </button>
           ))}
-          <div ref={observerTarget} className="flex justify-center py-4">
+          <div ref={observerTarget} className="flex justify-center py-10">
             {loading && <Loader2 className="animate-spin" />}
           </div>
         </div>
