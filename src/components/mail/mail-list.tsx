@@ -31,7 +31,7 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
   const observerTarget = useRef(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const [searchQuery, setSearchQuery] = useState("");
-
+  const [query, setQuery] = useState("");
   const fetchThreads = useCallback(async () => {
     try {
       setLoading(true);
@@ -135,14 +135,17 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
     };
   }, [lastToken, loading]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setSearchQuery(query);
+    }, 700);
+    return () => clearTimeout(timeoutId);
+  }, [query]);
+
   return (
     <div className="relative flex flex-col h-screen">
       <div className="relative px-4 my-4">
-        <Input
-          placeholder="Search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+        <Input placeholder="Search" value={query} onChange={(e) => setQuery(e.target.value)} />
       </div>
       <ScrollArea ref={scrollAreaRef} className="flex-1">
         <div className="flex flex-col gap-2 p-4 pt-0">
