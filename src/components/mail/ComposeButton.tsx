@@ -199,6 +199,15 @@ export function ComposeButton({ isCollapsed = false }: ComposeButtonProps) {
                   onChange={setBody}
                   className="h-[250px]"
                   placeholder="Write your message here..."
+                  modules={{
+                    toolbar: [
+                      [{ header: [1, 2, false] }],
+                      ["bold", "italic", "underline", "strike", "blockquote"],
+                      [{ list: "ordered" }, { list: "bullet" }],
+                      ["link"],
+                      ["clean"],
+                    ],
+                  }}
                 />
               </div>
             </div>

@@ -77,11 +77,11 @@ const AIComposeButton = (props: Props) => {
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle>AI Compose</DialogTitle>
-            <DialogClose asChild>
+            {/* <DialogClose asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
                 <X className="h-4 w-4" />
               </Button>
-            </DialogClose>
+            </DialogClose> */}
           </div>
           <DialogDescription>AI will help you compose your mails.</DialogDescription>
         </DialogHeader>

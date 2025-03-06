@@ -436,7 +436,7 @@ export function MailDisplay({ thread }: any) {
                                 [{ header: [1, 2, false] }],
                                 ["bold", "italic", "underline", "strike", "blockquote"],
                                 [{ list: "ordered" }, { list: "bullet" }],
-                                ["link", "image"],
+                                ["link"],
                                 ["clean"],
                               ],
                             }}
