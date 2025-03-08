@@ -17,7 +17,7 @@ export default function Home() {
             <br /> AI driven email client.
           </p>
           <p className="text-center text-zinc-600 text-xl flex items-center justify-center">
-            <img src="LOGO.png" className="w-8 h-8 mr-2" />
+            {/* <img src="LOGO.png" className="w-8 h-8 mr-2" /> */}
             PHNER is a mordern email client that streamlines your mailbox management with AI
           </p>
           {/* BUTTONS */}
@@ -32,7 +32,10 @@ export default function Home() {
       <div className="container mx-auto px-4 py-8 space-y-12">
         {/* What we offer section */}
         <section className="space-y-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-center text-zinc-600">
+          <h1
+            className="text-4xl md:text-5xl font-bold text-center text-zinc-600 scroll-mt-20"
+            id="features"
+          >
             What we offer:
           </h1>
           <div className="grid md:grid-cols-3 gap-6">
@@ -50,7 +53,7 @@ export default function Home() {
             />
           </div>
         </section>
-
+        <section></section>
         {/* Email Client Interface Image */}
         <div className="relative max-w-screen-lg rounded-lg overflow-hidden shadow-lg mx-auto border-gray-300 border-[1px]">
           <img src="/mailUI.png" alt="Email client interface" className="w-full h-auto" />
