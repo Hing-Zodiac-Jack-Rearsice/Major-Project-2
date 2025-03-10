@@ -103,7 +103,7 @@ export default function LoginPage() {
               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                 <Button
                   className="w-full py-6 flex items-center justify-center space-x-3 bg-white hover:bg-gray-50 text-gray-800 border border-gray-200 rounded-lg shadow-sm transition-all"
-                  onClick={() => signIn("google")}
+                  onClick={() => signIn("google", { redirectTo: "/mail" })}
                   variant="outline"
                 >
                   <svg

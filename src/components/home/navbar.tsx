@@ -37,8 +37,8 @@ export default function Navbar() {
 
         <div className="flex w-full justify-center">
           <nav className="hidden md:flex md:gap-10">
-            <Link href="/" className="flex items-center text-lg font-medium">
-              Home
+            <Link href="/mail" className="flex items-center text-lg font-medium">
+              Mail
             </Link>
 
             {/* Logo in the center */}

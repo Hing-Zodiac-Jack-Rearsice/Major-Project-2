@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "../ui/button";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { FcGoogle } from "react-icons/fc";
 
 interface AccountSwitcherProps {
@@ -49,7 +49,7 @@ export function AccountSwitcher({ isCollapsed, accounts }: AccountSwitcherProps)
             </div>
           </SelectItem>
         ))} */}
-        <Button variant="ghost" className="w-full">
+        <Button variant="ghost" className="w-full" onClick={() => signOut({ callbackUrl: "/" })}>
           Sign out
         </Button>
       </SelectContent>
