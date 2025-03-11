@@ -169,7 +169,7 @@ Body: ${turndown.turndown(messages.text) || ""}
           <Button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="rounded-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-md"
+            className="rounded-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-md size-10"
             aria-label="Send message"
           >
             {isLoading ? (

@@ -20,6 +20,7 @@ import {
   User,
   Paperclip,
   Download,
+  Loader2,
 } from "lucide-react";
 
 import { DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -40,6 +41,7 @@ import dynamic from "next/dynamic";
 import AIComposeButton from "./ai-compose-button";
 import { Delta } from "quill";
 import { generate, generateEmail } from "./actions";
+import { useToast } from "@/hooks/use-toast";
 // Dynamically import ReactQuill with SSR disabled
 const ReactQuill = dynamic(() => import("react-quill"), {
   ssr: false,
@@ -47,13 +49,15 @@ const ReactQuill = dynamic(() => import("react-quill"), {
 }) as typeof ReactQuillType;
 export function MailDisplay({ thread }: any) {
   const quillRef = useRef<ReactQuillType>(null);
-
+  const { toast } = useToast();
   const today = new Date();
   const [replyName, setReplyName] = useState("");
   const [editorContent, setEditorContent] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
   const [editorLoaded, setEditorLoaded] = useState(false);
   const [content, setContent] = useState("");
+  const [isSending, setIsSending] = useState(false);
+
   useEffect(() => {
     setEditorLoaded(true);
     setEditorContent("");
@@ -61,37 +65,11 @@ export function MailDisplay({ thread }: any) {
     setReplyName(thread ? thread.messages[0].from : "");
   }, [thread]);
 
-  // shortcut key
-  // useEffect(() => {
-  //   const handleKeyPress = (event: any) => {
-  //     // Check if Ctrl (or Cmd on Mac) + G is pressed
-  //     if ((event.ctrlKey || event.metaKey) && event.key === "g") {
-  //       event.preventDefault(); // Prevent the default action
-  //       // console.log("Ctrl + G was pressed!");
-  //       aiGenerate();
-  //     }
-  //   };
-
-  //   // Add event listener when the component mounts
-  //   window.addEventListener("keydown", handleKeyPress);
-
-  //   // Clean up the event listener when the component unmounts
-  //   return () => {
-  //     window.removeEventListener("keydown", handleKeyPress);
-  //   };
-  // }, []); // Empty dependency array means this effect runs only once on mount
-
-  // for use with shortcut key
-
-  // const aiGenerate = async () => {
-  //   console.log(editorContent);
-  //   // const { output } = await generate(editorContent);
-  // };
-
   const onGenerate = (token: string) => {
     // setEditorContent("");
     setContent((prev) => prev + token);
   };
+
   useEffect(() => {
     setEditorContent(
       content
@@ -100,9 +78,7 @@ export function MailDisplay({ thread }: any) {
         .join("")
     ); // Join without extra spaces
   }, [content]);
-  // useEffect(() => {
-  //   setContent("");
-  // }, [editorContent]);
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const files = Array.from(event.target.files);
@@ -116,6 +92,7 @@ export function MailDisplay({ thread }: any) {
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSending(true);
 
     try {
       const processedAttachments =
@@ -126,9 +103,9 @@ export function MailDisplay({ thread }: any) {
         content: editorContent,
         attachments: processedAttachments,
         participants:
-          thread.messages[0].replyTo?.length > 0 ? thread.messages[0].replyTo : thread.participants, // Add participants to the message data
+          thread.messages[0].replyTo?.length > 0 ? thread.messages[0].replyTo : thread.participants,
       };
-      // console.log(messageData);
+
       const response = await fetch(`/api/mail/reply/${thread.id}`, {
         method: "POST",
         headers: {
@@ -142,12 +119,25 @@ export function MailDisplay({ thread }: any) {
       if (result.success) {
         setEditorContent("");
         setAttachments([]);
+        setContent("");
+        toast({
+          title: "Success",
+          description: "Your reply has been sent successfully.",
+          duration: 5000,
+        });
         console.log("Reply sent successfully:", result.messageId);
       } else {
         throw new Error(result.error);
       }
     } catch (error) {
       console.error("Failed to send reply:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send your reply. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -180,16 +170,17 @@ export function MailDisplay({ thread }: any) {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error downloading attachment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to download attachment. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
   return (
     <div className="flex h-screen flex-col">
       {/* Header with actions */}
-      {/* <Button onClick={() => console.log(thread.messages[thread.messages.length - 1].id)}>
-        LOG last message id 1950e1dc9ca927e9
-      </Button> */}
-
       <div className="flex items-center">
         <div className="flex items-center p-2">
           <div className="flex items-center gap-2">
@@ -396,31 +387,6 @@ export function MailDisplay({ thread }: any) {
               <div className="border-t bg-white">
                 <form onSubmit={handleSend} className="p-4">
                   <div className="h-fit space-y-4">
-                    {/* To, CC, and Subject fields */}
-                    {/* <div className="space-y-2">
-                      <input
-                        type="text"
-                        placeholder={`To: ${thread.messages[0].replyTo}`}
-                        value={to}
-                        onChange={(e) => setTo(e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Cc"
-                        value={cc}
-                        onChange={(e) => setCc(e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Subject"
-                        value={subject}
-                        onChange={(e) => setSubject(e.target.value)}
-                        className="w-full p-2 border rounded-md"
-                      />
-                    </div> */}
-
                     {/* Editor container with fixed height */}
                     <div className="bg-white rounded-md">
                       {editorLoaded && (
@@ -509,8 +475,15 @@ export function MailDisplay({ thread }: any) {
                         thread={thread}
                       />
 
-                      <Button type="submit" className="ml-auto">
-                        Send
+                      <Button type="submit" className="ml-auto rounded-full" disabled={isSending}>
+                        {isSending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Sending...
+                          </>
+                        ) : (
+                          "Send"
+                        )}
                       </Button>
                     </div>
                   </div>

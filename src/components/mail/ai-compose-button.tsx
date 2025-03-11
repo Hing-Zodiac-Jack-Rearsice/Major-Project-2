@@ -67,7 +67,7 @@ const AIComposeButton = (props: Props) => {
         <Button
           onClick={props.onClick}
           variant="default"
-          className="rounded-full"
+          className="size-10 rounded-full focus-visible:ring-0 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
           disabled={!promptsRemaining || promptsRemaining <= 0}
         >
           <Bot className="h-5 w-5" />
@@ -86,6 +86,7 @@ const AIComposeButton = (props: Props) => {
           <DialogDescription>AI will help you compose your mails.</DialogDescription>
         </DialogHeader>
         <Textarea
+          className="focus-visible:ring-0"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Enter your prompt..."
