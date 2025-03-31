@@ -167,11 +167,6 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
                     <div className="flex items-center">
                       <div className="flex items-center gap-2">
                         <div className="font-semibold">{thread.lastMessage.name}</div>
-                        {thread.unreadCount > 0 && (
-                          <Badge variant="secondary" className="ml-auto">
-                            {thread.unreadCount}
-                          </Badge>
-                        )}
                       </div>
                       <div className="ml-auto text-xs">
                         {formatDistanceToNow(new Date(thread.lastMessage.date), {
@@ -188,11 +183,13 @@ export function MailList({ onThreadSelect, selected }: MailListProps) {
                   </div>
                   {thread.lastMessage.labels?.length ? (
                     <div className="flex items-center gap-2">
-                      {thread.lastMessage.labels.map((label) => (
-                        <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
-                          {label.split("_")[label.split("_").length - 1]}
-                        </Badge>
-                      ))}
+                      {thread.lastMessage.labels
+                        .filter((label) => label !== "UNREAD") // Exclude "unread"
+                        .map((label) => (
+                          <Badge key={label} variant={getBadgeVariantFromLabel(label)}>
+                            {label.split("_").pop()} {/* Get last part after "_" */}
+                          </Badge>
+                        ))}
                     </div>
                   ) : null}
                 </button>
