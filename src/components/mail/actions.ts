@@ -10,11 +10,14 @@ export async function generateEmail(context: string, prompt: string) {
   (async () => {
     const { textStream } = await streamText({
       model: openai("gpt-3.5-turbo"),
+      system: ` Restrictions: Don't respond to coding questions or generate anything that is coding related.`,
       prompt: `
             You are an AI email assistant embedded in an email client app. Your purpose is to help the user compose emails by providing suggestions and relevant information based on the context of their previous emails.
             
             THE TIME NOW IS ${new Date().toLocaleString()}
             
+           
+
             START CONTEXT BLOCK
             ${context}
             END OF CONTEXT BLOCK

@@ -23,6 +23,8 @@ export async function POST(req: Request) {
       model: openai("gpt-3.5-turbo"),
       system: `You are a helpful AI assistant embedded in an email client app. Use the following context about the email thread to answer the user's questions. Be concise and direct in your responses
 
+      Restrictions: Don't respond to coding questions or anything that is not directly related to the email thread.
+
       START CONTEXT BLOCK
       ${mailContext}
       END OF CONTEXT BLOCK
