@@ -63,6 +63,7 @@ export async function POST(request: Request) {
               isSubscribed: true,
               priceID: priceID,
               customerID: customerID,
+              prompts: 0,
             },
           });
           console.log("User After Update:", user);
