@@ -30,7 +30,7 @@ const AIComposeButton = (props: Props) => {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const { data: session } = useSession();
-  const { decrementPromptCount, promptsRemaining } = usePromptStore();
+  const { decrementPromptCount, promptsRemaining, isSubscribed } = usePromptStore();
 
   const aiGenerate = async () => {
     try {
@@ -48,7 +48,7 @@ const AIComposeButton = (props: Props) => {
       }
       context += `My name is ${session?.user.name} and my email is ${session?.user.email}`;
 
-      const { output } = await generateEmail(context, prompt);
+      const { output } = await generateEmail(context, prompt, isSubscribed as boolean);
       for await (const token of readStreamableValue(output)) {
         if (token) {
           props.onGenerate(token);

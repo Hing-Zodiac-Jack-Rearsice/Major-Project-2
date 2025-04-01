@@ -15,12 +15,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { messages, mailContext, threadId } = await req.json();
+    const { messages, mailContext, threadId, isSubscribed } = await req.json();
     // Save the user message to database
     const userMessage = messages[messages.length - 1];
-
+    if (isSubscribed) {
+      console.log("from chat: using gpt-4-turbo");
+    } else {
+      console.log("from chat: using gpt-3.5-turbo");
+    }
     const result = streamText({
-      model: openai("gpt-3.5-turbo"),
+      model: isSubscribed ? openai("gpt-4-turbo") : openai("gpt-3.5-turbo"),
       system: `You are a helpful AI assistant embedded in an email client app. Use the following context about the email thread to answer the user's questions. Be concise and direct in your responses
 
       Restrictions: Don't respond to coding questions or anything that is not directly related to the email thread.

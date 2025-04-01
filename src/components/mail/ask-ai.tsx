@@ -24,7 +24,7 @@ const AskAI = ({ isCollapsed, thread }: { isCollapsed: boolean; thread: any }) =
   // Add a key to force the useChat hook to reset
   const [chatKey, setChatKey] = useState(thread?.id || "default");
   // Fetch existing messages when thread changes
-  const { decrementPromptCount, promptsRemaining } = usePromptStore();
+  const { decrementPromptCount, promptsRemaining, isSubscribed } = usePromptStore();
   useEffect(() => {
     if (thread?.id) {
       fetchMessages();
@@ -76,6 +76,7 @@ Body: ${turndown.turndown(messages.text) || ""}
     body: {
       mailContext: getThreadContext(),
       threadId: threadAvailable ? thread.id : "",
+      isSubscribed,
     },
     onFinish: async () => {
       await decrementPromptCount();

@@ -3,13 +3,17 @@ import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { createStreamableValue } from "ai/rsc";
 
-export async function generateEmail(context: string, prompt: string) {
+export async function generateEmail(context: string, prompt: string, isSubscribed: boolean) {
   //   console.log("context", context);
   const stream = createStreamableValue("");
-
+  if (isSubscribed) {
+    console.log("from generate: using gpt-4-turbo");
+  } else {
+    console.log("from generate: using gpt-3.5-turbo");
+  }
   (async () => {
     const { textStream } = await streamText({
-      model: openai("gpt-3.5-turbo"),
+      model: isSubscribed ? openai("gpt-4-turbo") : openai("gpt-3.5-turbo"),
       system: ` Restrictions: Don't respond to coding questions or generate anything that is coding related.`,
       prompt: `
             You are an AI email assistant embedded in an email client app. Your purpose is to help the user compose emails by providing suggestions and relevant information based on the context of their previous emails.
