@@ -1,81 +1,49 @@
 "use client";
 import type React from "react";
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Send, Loader2, SparkleIcon, SparklesIcon } from "lucide-react";
+import { Send, Loader2, SparklesIcon } from "lucide-react";
 import { useChat } from "@ai-sdk/react";
 import { Button } from "../ui/button";
 import { turndown } from "./turndown";
 import { useSession } from "next-auth/react";
-import { Textarea } from "../ui/textarea";
-import { ScrollArea } from "../ui/scroll-area";
 import { Input } from "../ui/input";
-import { threadId } from "worker_threads";
 import { usePromptStore } from "@/state/promptStore";
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from "../ui/scroll-area";
 
 const AskAI = ({ isCollapsed, thread }: { isCollapsed: boolean; thread: any }) => {
   const { toast } = useToast();
   const { data: session } = useSession();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [initialMessages, setInitialMessages] = useState<any[]>([]);
-  const [isInitialLoading, setIsInitialLoading] = useState(false);
-  // Add a key to force the useChat hook to reset
-  const [chatKey, setChatKey] = useState(thread?.id || "default");
-  // Fetch existing messages when thread changes
   const { decrementPromptCount, promptsRemaining, isSubscribed } = usePromptStore();
-  useEffect(() => {
-    if (thread?.id) {
-      fetchMessages();
-      setChatKey(thread.id);
-    }
-  }, [thread?.id]);
-
-  // Function to fetch existing messages
-  const fetchMessages = async () => {
-    if (!thread?.id) return;
-
-    setIsInitialLoading(true);
-    try {
-      const response = await fetch(`/api/chat/messages?threadId=${thread.id}`);
-      const data = await response.json();
-      setInitialMessages(data);
-    } catch (error) {
-      console.error("Failed to fetch messages:", error);
-    } finally {
-      setIsInitialLoading(false);
-    }
-  };
 
   // Get thread context
   const getThreadContext = () => {
+    if (!thread) return "";
+
     let context = "";
-    if (thread) {
-      for (const messages of thread.messages) {
-        const content = ` 
-Subject: ${messages.subject}
-From: ${messages.email}
-Sent: ${new Date(messages.date).toLocaleString()}
-Body: ${turndown.turndown(messages.text) || ""}
+    for (const message of thread.messages) {
+      const content = ` 
+Subject: ${message.subject}
+From: ${message.email}
+Sent: ${new Date(message.date).toLocaleString()}
+Body: ${turndown.turndown(message.text) || ""}
 `;
-        context += content;
-      }
+      context += content;
     }
-    context += `My name is ${session?.user.name} and my email is ${session?.user.email}`;
+    context += `\nMy name is ${session?.user.name} and my email is ${session?.user.email}`;
     return context;
   };
-  // Only initialize useChat when thread is available
-  const threadAvailable = Boolean(thread && thread.id);
-  // Use the useChat hook from AI SDK
-  // Use the useChat hook from AI SDK with the key prop to force reset
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    id: chatKey, // Add this line to force reset on thread change
-    initialMessages: initialMessages,
+
+  // Chat hook configuration
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+    id: thread?.id || "default",
     api: "/api/chat",
     body: {
       mailContext: getThreadContext(),
-      threadId: threadAvailable ? thread.id : "",
+      threadId: thread?.id || "",
       isSubscribed,
     },
     onFinish: async () => {
@@ -83,11 +51,30 @@ Body: ${turndown.turndown(messages.text) || ""}
     },
   });
 
+  // Fetch existing messages when thread changes
+  useEffect(() => {
+    const fetchMessages = async (threadId: string) => {
+      try {
+        const response = await fetch(`/api/chat/messages?threadId=${threadId}`);
+        if (!response.ok) throw new Error("Failed to fetch messages");
+        const data = await response.json();
+        setMessages(data || []);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+        setMessages([]);
+      }
+    };
+
+    if (thread?.id) {
+      fetchMessages(thread.id);
+    } else {
+      setMessages([]);
+    }
+  }, [thread?.id]);
+
   // Scroll to bottom on new messages
   useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -103,7 +90,6 @@ Body: ${turndown.turndown(messages.text) || ""}
     handleSubmit(e);
   };
 
-  // If collapsed, just show the sparkles icon button
   if (isCollapsed) {
     return (
       <div className="flex justify-center p-2 border-t">
@@ -117,10 +103,8 @@ Body: ${turndown.turndown(messages.text) || ""}
     );
   }
 
-  // Full component when not collapsed
   return (
     <div className="border-t">
-      {/* <Button onClick={() => console.log(thread.id)}>log threadid</Button> */}
       <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/20 p-3 border-b border-blue-100 dark:border-blue-900/30">
         <div className="flex items-center gap-2 px-1">
           <div className="bg-blue-100 dark:bg-blue-900/50 p-1.5 rounded-full">
@@ -131,30 +115,31 @@ Body: ${turndown.turndown(messages.text) || ""}
           </p>
         </div>
       </div>
-      <ScrollArea
-        className={`flex-1 px-2 ${
-          messages.length > 0 ? "h-[100px]" : "h-0"
-        } scroll-smooth overflow-y-auto mb-2`}
-      >
+
+      <ScrollArea className={`flex-1 px-2 ${messages.length > 0 ? "h-[100px]" : "h-0"} mb-2`}>
         <AnimatePresence mode="wait">
-          {messages.map((message) => (
-            <motion.div
-              key={message.id}
-              layout="position"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className={cn("z-10 mt-2 w-fit max-w-[85%] break-words rounded-2xl px-3 py-2", {
-                "ml-auto bg-blue-500 text-white": message.role === "user",
-                "mr-auto bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100":
-                  message.role === "assistant",
-              })}
-              layoutId={`container-[${messages.length - 1}]`}
-            >
-              <div className="text-sm">{message.content}</div>
-            </motion.div>
-          ))}
+          {messages.length === 0 && isLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-4 w-4 animate-spin" />
+            </div>
+          ) : (
+            messages.map((message) => (
+              <motion.div
+                key={message.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className={cn("mt-2 w-fit max-w-[85%] break-words rounded-2xl px-3 py-2", {
+                  "ml-auto bg-blue-500 text-white": message.role === "user",
+                  "mr-auto bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-gray-100":
+                    message.role === "assistant",
+                })}
+              >
+                <div className="text-sm">{message.content}</div>
+              </motion.div>
+            ))
+          )}
           <div ref={messagesEndRef} />
         </AnimatePresence>
       </ScrollArea>
@@ -166,12 +151,12 @@ Body: ${turndown.turndown(messages.text) || ""}
             onChange={handleInputChange}
             placeholder="Ask a question..."
             className="rounded-2xl focus-visible:ring-0"
+            disabled={isLoading}
           />
           <Button
             type="submit"
             disabled={isLoading || !input.trim()}
             className="rounded-full bg-blue-600 hover:bg-blue-700 transition-colors shadow-md size-10"
-            aria-label="Send message"
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
