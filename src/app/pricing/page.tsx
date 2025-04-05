@@ -70,7 +70,7 @@ export default function PricingPage() {
                 <strong>45</strong> AI prompts per day
               </PricingFeature>
               {/* <PricingFeature>Priority support</PricingFeature> */}
-              <PricingFeature>Access to gpt-4-turbo</PricingFeature>
+              <PricingFeature>Access to gpt-4o-mini</PricingFeature>
               {/* <PricingFeature>Faster response time</PricingFeature>
               <PricingFeature>Advanced customization options</PricingFeature>
               <PricingFeature>Detailed analytics</PricingFeature> */}
