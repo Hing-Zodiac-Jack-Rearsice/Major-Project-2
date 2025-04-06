@@ -22,10 +22,14 @@ export default function Home() {
           </p>
           {/* BUTTONS */}
           <div className="flex items-center justify-center gap-4 mt-5">
-            <Button className="rounded-s-full font-mono font-bold">Get started</Button>
-            <Button variant="link" className="font-mono font-bold hover-underline">
-              Learn more
-            </Button>
+            <a href="/login">
+              <Button className="rounded-s-full font-mono font-bold">Get started</Button>
+            </a>
+            <a href="/pricing">
+              <Button variant="link" className="font-mono font-bold hover-underline">
+                Learn more
+              </Button>
+            </a>
           </div>
         </div>
       </div>
